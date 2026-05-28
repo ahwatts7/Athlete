@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ATHLETE">
+<meta name="theme-color" content="#060608">
+<title>ATHLETE</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#060608;--void:#0c0c10;--pit:#131318;--cave:#1a1a22;
+  --steel:#26262e;--iron:#35353f;--ash:#55555f;--fog:#7a7a88;
+  --ghost:#c8c8d8;--white:#eeeef5;
+  --gold:#c8a84b;--gold-dim:#7a6428;--gold-glow:rgba(200,168,75,0.1);
+  --green-bright:#2ecc71;
+  --border:rgba(200,168,75,0.12);--border-mid:rgba(200,168,75,0.25);--border-bright:rgba(200,168,75,0.45);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--ghost);min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.5s ease}
+#splash.gone{opacity:0;pointer-events:none}
+.splash-logo{font-family:'Oswald',sans-serif;font-size:58px;font-weight:700;letter-spacing:8px;color:var(--gold);margin-bottom:6px}
+.splash-sub{font-size:11px;letter-spacing:4px;color:var(--ash);margin-bottom:64px;text-transform:uppercase}
+.splash-bar-bg{width:180px;height:2px;background:var(--iron);border-radius:2px;overflow:hidden}
+.splash-bar-fill{height:100%;width:0%;background:var(--gold);border-radius:2px;transition:width 0.04s linear}
+.splash-welcome{position:absolute;bottom:64px;font-family:'Oswald',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white);opacity:0;transition:opacity 0.7s ease;text-align:center}
+.splash-welcome.show{opacity:1}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:var(--void);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
+.nav-logo{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:4px;color:var(--gold)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-date{font-size:11px;color:var(--ash);letter-spacing:1px}
+.offline-dot{width:7px;height:7px;border-radius:50%;background:var(--ash);transition:all 0.3s}
+.offline-dot.online{background:var(--green-bright);box-shadow:0 0 6px var(--green-bright)}
+
+/* TABS */
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--void);border-top:1px solid var(--border);display:flex;padding:10px 0 22px;z-index:100}
+.tab-btn{flex:1;background:none;border:none;color:var(--ash);display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:0.5px;cursor:pointer;transition:color 0.2s}
+.tab-btn.active{color:var(--gold)}
+.tab-icon{font-size:18px}
+
+/* PAGES */
+.page{display:none;padding-bottom:90px;min-height:calc(100vh - 54px)}
+.page.active{display:block}
+
+/* HERO */
+.hero{background:var(--void);border-bottom:1px solid var(--border);padding:20px 20px 24px}
+.phase-tag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--gold-dim);border:1px solid var(--border);padding:4px 10px;border-radius:2px;margin-bottom:12px;text-transform:uppercase}
+.phase-tag::before{content:'';width:5px;height:5px;background:var(--gold);border-radius:50%}
+.hero-day{font-family:'Oswald',sans-serif;font-size:48px;font-weight:700;color:var(--white);letter-spacing:2px;line-height:1;margin-bottom:4px}
+.hero-type{font-size:13px;color:var(--fog);letter-spacing:1px}
+
+/* DAY STRIP */
+.day-strip{display:flex;gap:6px;padding:14px 16px;overflow-x:auto;scrollbar-width:none;background:var(--void);border-bottom:1px solid var(--border-mid)}
+.day-strip::-webkit-scrollbar{display:none}
+.day-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--pit);transition:all 0.15s}
+.day-chip.active{border-color:var(--gold);background:var(--gold-glow)}
+.day-chip.active .chip-name{color:var(--gold)}
+.day-chip.done .chip-dot{background:var(--gold)}
+.chip-abbr{font-size:9px;color:var(--ash);font-weight:600;letter-spacing:1px}
+.chip-name{font-size:12px;font-weight:500;color:var(--ghost)}
+.chip-dot{width:4px;height:4px;border-radius:50%;background:transparent}
+
+/* WORKOUT */
+.workout-block{margin:12px 14px;background:var(--pit);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.block-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.block-title{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.block-count{font-size:11px;color:var(--ash)}
+.ex-row{border-bottom:1px solid var(--border);padding:12px 14px;user-select:none}
+.ex-row:last-child{border-bottom:none}
+.ex-row.dragging{opacity:0.3}
+.ex-row.drag-over{border-top:2px solid var(--gold)}
+.ex-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.drag-handle{display:flex;flex-direction:column;gap:3px;padding:4px 2px;cursor:grab;flex-shrink:0}
+.drag-handle span{display:block;width:18px;height:1.5px;background:var(--iron);border-radius:1px}
+.ex-info{flex:1}
+.ex-name{font-size:14px;font-weight:500;color:var(--white);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ex-scheme{font-family:'DM Mono',monospace;font-size:11px;color:var(--ash);margin-top:2px}
+.swap-btn{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--ash);border:1px solid var(--border);background:var(--steel);padding:5px 11px;border-radius:2px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.swap-btn:active{border-color:var(--gold);color:var(--gold)}
+.sets-row{display:flex;gap:8px;flex-wrap:wrap}
+.set-box{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;min-width:56px;border:1px solid var(--border);border-radius:3px;background:var(--cave);cursor:pointer;transition:all 0.15s}
+.set-box.logged{border-color:var(--gold);background:var(--gold-glow)}
+.set-box.logged .set-wt{color:var(--gold)}
+.set-n{font-size:9px;color:var(--ash);letter-spacing:1px;text-transform:uppercase}
+.set-wt{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--ghost)}
+.set-rp{font-size:9px;color:var(--ash)}
+.main-tag{font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold-dim);padding:1px 6px;border-radius:2px;letter-spacing:0.5px}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:var(--pit);border-top:1px solid var(--border-bright);border-radius:12px 12px 0 0;width:100%;max-width:430px;padding:24px 22px 44px;animation:up 0.22s ease}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-title{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;letter-spacing:2px;color:var(--white);margin-bottom:4px}
+.sheet-sub{font-size:12px;color:var(--ash);margin-bottom:20px;letter-spacing:0.5px}
+.input-row{display:flex;gap:12px;margin-bottom:16px}
+.input-field{flex:1}
+.input-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--ash);margin-bottom:6px;display:block;text-transform:uppercase}
+.input-box{width:100%;padding:13px 14px;background:var(--cave);border:1px solid var(--border-mid);border-radius:3px;color:var(--white);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;outline:none;transition:border-color 0.15s}
+.input-box:focus{border-color:var(--gold)}
+.input-sm{font-size:14px;padding:12px 14px}
+.confirm-btn{width:100%;padding:14px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;border:none;border-radius:3px;cursor:pointer;margin-bottom:10px;transition:opacity 0.15s}
+.confirm-btn:active{opacity:0.8}
+.cancel-btn{width:100%;padding:10px;background:none;border:none;color:var(--ash);font-size:13px;cursor:pointer}
+.swap-option{padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px}
+.swap-option:last-child{border-bottom:none}
+.swap-option:active{opacity:0.6}
+.swap-muscle{font-size:10px;color:var(--ash);letter-spacing:1px;width:64px;flex-shrink:0;text-transform:uppercase}
+.swap-name{font-size:14px;color:var(--white);font-weight:500}
+.swap-arrow{margin-left:auto;color:var(--gold);font-size:16px}
+.swap-current{font-size:10px;color:var(--gold);padding:2px 8px;border:1px solid var(--border-mid);border-radius:2px;margin-left:auto}
+
+/* PAGE HEADER */
+.page-header{padding:22px 18px 14px;border-bottom:1px solid var(--border)}
+.page-ttl{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;letter-spacing:3px;color:var(--white)}
+.page-sub{font-size:12px;color:var(--ash);margin-top:3px;letter-spacing:1px}
+
+/* WEEK */
+.week-row{margin:10px 14px 0;background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.week-row:active{border-color:var(--gold)}
+.week-icon{width:40px;height:40px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--cave);border:1px solid var(--border);flex-shrink:0}
+.week-dname{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:1px;color:var(--white)}
+.week-dtype{font-size:12px;color:var(--ash);margin-top:2px}
+.week-badge{font-size:10px;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:2px;margin-left:auto;white-space:nowrap}
+.wb-done{background:rgba(46,204,113,0.1);color:var(--green-bright);border:1px solid rgba(46,204,113,0.2)}
+.wb-today{background:var(--gold-glow);color:var(--gold);border:1px solid var(--border-mid)}
+.wb-next{border:1px solid var(--border);color:var(--ash)}
+
+/* GOALS */
+.goal-block{margin:10px 14px 0;background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:16px}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.goal-nm{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:1px;color:var(--white)}
+.goal-pct{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold)}
+.bar-bg{height:4px;background:var(--cave);overflow:hidden}
+.bar-fill{height:100%;background:var(--gold);transition:width 0.6s ease}
+.goal-nums{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--ash)}
+
+/* REPORT PAGE */
+.rp-inner{padding:0 14px 14px}
+.rp-intro{font-size:13px;color:var(--ash);line-height:1.7;margin:16px 0 18px}
+.section-lbl{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--ash);text-transform:uppercase;margin-bottom:8px;display:block}
+.notes-area{width:100%;height:150px;padding:14px;background:var(--pit);border:1px solid var(--border-mid);border-radius:4px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.7;resize:none;outline:none;margin-bottom:16px;display:block}
+.notes-area:focus{border-color:var(--gold)}
+.big-copy-btn{width:100%;padding:20px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:3px;border:none;border-radius:4px;cursor:pointer;margin-bottom:14px;transition:all 0.2s}
+.big-copy-btn:active{opacity:0.8}
+.big-copy-btn.success{background:var(--green-bright)}
+.report-preview{background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.8;color:var(--ghost);white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;margin-bottom:14px}
+
+/* SHORTCUT GUIDE */
+.sc-wrap{margin:10px 14px 0}
+.sc-section-title{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--white);margin-bottom:10px;padding:20px 0 0}
+.sc-card{background:var(--pit);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:10px}
+.sc-card-head{padding:12px 16px;background:var(--cave);border-bottom:1px solid var(--border)}
+.sc-card-ttl{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.sc-card-body{padding:14px 16px}
+.sc-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.sc-step:last-child{margin-bottom:0}
+.sc-num{width:22px;height:22px;border-radius:2px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.sc-text{font-size:13px;color:var(--ghost);line-height:1.65}
+.sc-text b{color:var(--white)}
+.sc-code{font-family:'DM Mono',monospace;font-size:11px;background:var(--cave);color:var(--gold);padding:2px 6px;border-radius:2px}
+.sc-note{font-size:11px;color:var(--ash);margin-top:5px;line-height:1.5;display:block}
+.sc-day-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.sc-day-row{display:flex;gap:10px;align-items:center;font-size:12px}
+.sc-day-lbl{color:var(--ash);width:70px;flex-shrink:0}
+.sc-day-val{color:var(--white);font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">ATHLETE</div>
+  <div class="splash-sub">Summer 2026 · D1 Prep</div>
+  <div class="splash-bar-bg"><div class="splash-bar-fill" id="splash-bar"></div></div>
+  <div class="splash-welcome" id="splash-welcome">Welcome, Watts.</div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">ATHLETE</div>
+  <div class="nav-right">
+    <div class="nav-date" id="nav-date"></div>
+    <div class="offline-dot" id="online-dot" title=""></div>
+  </div>
+</nav>
+
+<!-- PAGE: TODAY -->
+<div class="page active" id="page-today">
+  <div class="hero">
+    <div class="phase-tag">Phase 1 · Base Build</div>
+    <div class="hero-day" id="hero-day">MONDAY</div>
+    <div class="hero-type" id="hero-type">Upper — Push</div>
+  </div>
+  <div class="day-strip" id="day-strip"></div>
+  <div id="workout-content"></div>
+</div>
+
+<!-- PAGE: WEEK -->
+<div class="page" id="page-week">
+  <div class="page-header">
+    <div class="page-ttl">THIS WEEK</div>
+    <div class="page-sub">Phase 1 · Base Build · Week 1</div>
+  </div>
+  <div id="week-rows"></div>
+</div>
+
+<!-- PAGE: REPORT (copy page) -->
+<div class="page" id="page-report">
+  <div class="page-header">
+    <div class="page-ttl">WEEKLY REPORT</div>
+    <div class="page-sub">One tap · copy · paste to Claude</div>
+  </div>
+  <div class="rp-inner">
+    <p class="rp-intro">Every set, every weight, every swap you made — bundled automatically. Add any notes, hit the button, paste into Claude. That's it. I'll adjust next week based on exactly what you did.</p>
+    <span class="section-lbl">Add your notes for the week</span>
+    <textarea class="notes-area" id="week-notes" placeholder="What went well? What was hard? Anything sore? How were your runs? Be honest — this is what shapes next week."></textarea>
+    <div class="report-preview" id="report-preview"></div>
+    <button class="big-copy-btn" id="big-copy-btn" onclick="buildAndCopy()">COPY THIS WEEK TO CLAUDE</button>
+  </div>
+</div>
+
+<!-- PAGE: GOALS + SHORTCUT GUIDE -->
+<div class="page" id="page-goals">
+  <div class="page-header">
+    <div class="page-ttl">TARGETS</div>
+    <div class="page-sub">Summer 2026 · D1 prep</div>
+  </div>
+  <div id="goals-content"></div>
+
+  <!-- SHORTCUT GUIDE -->
+  <div class="sc-wrap">
+    <div class="sc-section-title">NOTIFICATION SETUP</div>
+
+    <div class="sc-card">
+      <div class="sc-card-head"><div class="sc-card-ttl">Step 1 — Create the Automation</div></div>
+      <div class="sc-card-body">
+        <div class="sc-step"><div class="sc-num">1</div><div class="sc-text">Open the <b>Shortcuts</b> app on your iPhone. Tap the <b>Automation</b> tab at the bottom of the screen.</div></div>
+        <div class="sc-step"><div class="sc-num">2</div><div class="sc-text">Tap <b>+</b> in the top right → tap <b>New Automation</b>.</div></div>
+        <div class="sc-step"><div class="sc-num">3</div><div class="sc-text">Scroll down, tap <b>Time of Day</b>. Set the time to <b>7:00 AM</b>. Set repeat to <b>Daily</b>. Tap <b>Next</b>.</div></div>
+      </div>
+    </div>
+
+    <div class="sc-card">
+      <div class="sc-card-head"><div class="sc-card-ttl">Step 2 — Build the Day Logic</div></div>
+      <div class="sc-card-body">
+        <div class="sc-step"><div class="sc-num">4</div><div class="sc-text">Tap <b>Add Action</b>. Search <b>"Current Date"</b> and add it. Then add another action: search <b>"Format Date"</b>. Set format to <b>Custom</b> and type <span class="sc-code">EEEE</span> — this outputs the full day name like "Monday".<span class="sc-note">This is the engine that detects what day it is automatically.</span></div></div>
+        <div class="sc-step"><div class="sc-num">5</div><div class="sc-text">Add action: search <b>"If"</b> and add the <b>If</b> block. Set it to: <b>Formatted Date</b> → <b>contains</b> → <b>Monday</b>.</div></div>
+        <div class="sc-step"><div class="sc-num">6</div><div class="sc-text">Inside the If block, add action: <b>"Show Notification"</b>.<br><br>
+          Title: <span class="sc-code">Upper Body Day 💪</span><br>
+          Body: <span class="sc-code">Don't forget to do your workout — track it in ATHLETE</span><br>
+          <span class="sc-note">Leave "Play Sound" on so it actually alerts you.</span>
+        </div></div>
+        <div class="sc-step"><div class="sc-num">7</div><div class="sc-text">Also inside the If block, add action: <b>"Open URL"</b>. Paste the URL of your saved ATHLETE file. (Open the file in Safari → long press the address bar → Copy → paste here.)<span class="sc-note">When you tap the notification, this opens the app directly.</span></div></div>
+        <div class="sc-step"><div class="sc-num">8</div><div class="sc-text">Tap <b>Otherwise</b> at the bottom of the If block. Add <b>another If</b> for each remaining day. Repeat steps 5–7 with these titles:
+          <div class="sc-day-list">
+            <div class="sc-day-row"><span class="sc-day-lbl">Tuesday</span><span class="sc-day-val">Pull Day + Legs 🦾</span></div>
+            <div class="sc-day-row"><span class="sc-day-lbl">Wednesday</span><span class="sc-day-val">Soccer &amp; Conditioning ⚽</span></div>
+            <div class="sc-day-row"><span class="sc-day-lbl">Thursday</span><span class="sc-day-val">Upper Body Volume 💪</span></div>
+            <div class="sc-day-row"><span class="sc-day-lbl">Friday</span><span class="sc-day-val">Lower Body + Explosives 🦵</span></div>
+            <div class="sc-day-row"><span class="sc-day-lbl">Saturday</span><span class="sc-day-val">Active Recovery 😴</span></div>
+            <div class="sc-day-row"><span class="sc-day-lbl">Sunday</span><span class="sc-day-val">Game Day 🏆</span></div>
+          </div>
+          <span class="sc-note">Body for every day: <span class="sc-code">Don't forget to do your workout — track it in ATHLETE</span></span>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="sc-card" style="margin-bottom:0">
+      <div class="sc-card-head"><div class="sc-card-ttl">Step 3 — Finalize</div></div>
+      <div class="sc-card-body">
+        <div class="sc-step"><div class="sc-num">9</div><div class="sc-text">When all 7 days are set up, tap <b>Next</b> in the top right. On the summary screen, find the toggle that says <b>"Ask Before Running"</b> and turn it <b>OFF</b>.<span class="sc-note">This makes it fully automatic — no confirmation required every morning.</span></div></div>
+        <div class="sc-step"><div class="sc-num">10</div><div class="sc-text">Tap <b>Done</b>. Every morning at 7am you'll get a notification with your workout type for that day. Tapping it opens ATHLETE directly. Zero extra steps.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM TABS -->
+<nav class="tabs">
+  <button class="tab-btn active" onclick="showPage('today',0)"><span class="tab-icon">⚡</span>TODAY</button>
+  <button class="tab-btn" onclick="showPage('week',1)"><span class="tab-icon">📅</span>WEEK</button>
+  <button class="tab-btn" onclick="showPage('report',2)"><span class="tab-icon">📋</span>REPORT</button>
+  <button class="tab-btn" onclick="showPage('goals',3)"><span class="tab-icon">🎯</span>GOALS</button>
+</nav>
+
+<!-- LOG MODAL -->
+<div class="overlay" id="log-modal">
+  <div class="sheet">
+    <div class="sheet-title" id="log-title">BENCH PRESS</div>
+    <div class="sheet-sub" id="log-sub">Set 1 of 4 · 4×6–8</div>
+    <div class="input-row">
+      <div class="input-field"><label class="input-label">Weight (lbs)</label><input class="input-box" type="number" id="log-weight" placeholder="135" inputmode="decimal"></div>
+      <div class="input-field"><label class="input-label">Reps</label><input class="input-box" type="number" id="log-reps" placeholder="8" inputmode="numeric"></div>
+    </div>
+    <div class="input-field" style="margin-bottom:16px"><label class="input-label">Note (optional)</label><input class="input-box input-sm" type="text" id="log-note" placeholder="felt good · felt heavy · form off..."></div>
+    <button class="confirm-btn" onclick="saveLog()">LOG SET</button>
+    <button class="cancel-btn" onclick="closeModals()">Cancel</button>
+  </div>
+</div>
+
+<!-- SWAP MODAL -->
+<div class="overlay" id="swap-modal">
+  <div class="sheet" style="max-height:80vh;overflow-y:auto" id="swap-content"></div>
+</div>
+
+<script>
+const SWAPS={
+  chest:['Bench Press','Incline DB Press','Decline Press','DB Flys','Cable Crossovers','Chest Dips','Machine Press','Push-Ups (weighted)'],
+  shoulder:['Overhead Press','Arnold Press','Lateral Raises','Front Raises','Cable Lateral Raise','DB Shoulder Press','Upright Row'],
+  triceps:['Tricep Dips','Skull Crushers','Cable Pushdowns','Overhead Tricep Ext','Close-Grip Bench','Diamond Push-Ups'],
+  back:['Pull-Ups','Lat Pulldown','Seated Cable Row','Bent-Over Row','T-Bar Row','Single-Arm DB Row','Face Pulls','Chest-Supported Row'],
+  biceps:['Barbell Curl','DB Curl','Hammer Curl','Cable Curl','Preacher Curl','Concentration Curl'],
+  quad:['Back Squat','Leg Press','Front Squat','Hack Squat','Bulgarian Split Squat','Lunges','Step-Ups','Leg Extension'],
+  hamstring:['Romanian Deadlift','Nordic Curls','Leg Curl','Stiff-Leg Deadlift','Good Mornings'],
+  calf:['Standing Calf Raises','Seated Calf Raises','Leg Press Calf Raise','Single-Leg Calf Raise'],
+  core:['Plank','Hollow Hold','Ab Wheel','Leg Raises','Cable Crunch','Hanging Knee Raise','Dead Bug'],
+  explosive:['Box Jumps','Broad Jumps','Med Ball Slam','Jump Squat','Depth Jump'],
+  cardio:['2-Mile Run','1-Mile Time Trial','Sprint Intervals','Bike Intervals','Rowing Machine'],
+  agility:['Agility Ladder','Cone Drills','T-Drill','5-10-5 Shuttle','L-Drill'],
+};
+const EX_MUSCLE={
+  'Bench Press':'chest','Incline Dumbbell Press':'chest','Overhead Press':'shoulder',
+  'Lateral Raises':'shoulder','Tricep Dips':'triceps','Plank / Hollow Hold':'core',
+  'Pull-Ups / Negatives':'back','Lat Pulldown':'back','Seated Cable Row':'back',
+  'Face Pulls':'shoulder','Bulgarian Split Squat':'quad','Nordic Curls':'hamstring',
+  'Bench Press (Volume)':'chest','Dumbbell Flys':'chest','Arnold Press':'shoulder',
+  'Cable Row':'back','Pull-Up Bar (Home)':'back','Ab Wheel / Leg Raises':'core',
+  'Back Squat':'quad','Romanian Deadlift':'hamstring','Box Jumps':'explosive',
+  'Single-Leg Press':'quad','Calf Raises':'calf','Easy Run':'cardio',
+  '2-Mile Run (Paced)':'cardio','40m Sprint Repeats':'agility','Agility Ladders / Cones':'agility',
+  'Ball Work / Touches':'agility','Mobility Cool-Down':'core','Walk or Light Bike':'cardio',
+  'Mobility / Stretching':'core','Dynamic Warm-Up':'core','Game':'cardio',
+  'Post-Game Stretch':'core','Refuel + Rest':'core',
+};
+const BASE_PLAN={
+  0:{name:'MONDAY',type:'Upper — Push',emoji:'💪',exercises:[
+    {name:'Bench Press',scheme:'4×6–8',sets:4,primary:true},
+    {name:'Incline Dumbbell Press',scheme:'3×10',sets:3},
+    {name:'Overhead Press',scheme:'3×10',sets:3},
+    {name:'Lateral Raises',scheme:'3×15',sets:3},
+    {name:'Tricep Dips',scheme:'3×12',sets:3},
+    {name:'Plank / Hollow Hold',scheme:'3×45s',sets:3},
+  ]},
+  1:{name:'TUESDAY',type:'Upper — Pull + Legs',emoji:'🦾',exercises:[
+    {name:'Pull-Ups / Negatives',scheme:'Max×4 sets',sets:4,primary:true},
+    {name:'Lat Pulldown',scheme:'4×8–10',sets:4},
+    {name:'Seated Cable Row',scheme:'3×10',sets:3},
+    {name:'Face Pulls',scheme:'3×15',sets:3},
+    {name:'Bulgarian Split Squat',scheme:'3×10 each',sets:3},
+    {name:'Nordic Curls',scheme:'3×6',sets:3},
+  ]},
+  2:{name:'WEDNESDAY',type:'Soccer + Conditioning',emoji:'⚽',exercises:[
+    {name:'2-Mile Run (Paced)',scheme:'Track time',sets:1,primary:true},
+    {name:'40m Sprint Repeats',scheme:'8–10 reps',sets:1},
+    {name:'Agility Ladders / Cones',scheme:'15 min',sets:1},
+    {name:'Ball Work / Touches',scheme:'20 min',sets:1},
+    {name:'Mobility Cool-Down',scheme:'10 min',sets:1},
+  ]},
+  3:{name:'THURSDAY',type:'Upper — Volume Push',emoji:'💪',exercises:[
+    {name:'Bench Press (Volume)',scheme:'4×10–12',sets:4,primary:true},
+    {name:'Dumbbell Flys',scheme:'3×12',sets:3},
+    {name:'Arnold Press',scheme:'3×10',sets:3},
+    {name:'Cable Row',scheme:'3×12',sets:3},
+    {name:'Pull-Up Bar (Home)',scheme:'3×failure',sets:3},
+    {name:'Ab Wheel / Leg Raises',scheme:'3×12',sets:3},
+  ]},
+  4:{name:'FRIDAY',type:'Lower + Explosive',emoji:'🦵',exercises:[
+    {name:'Back Squat',scheme:'4×6–8',sets:4,primary:true},
+    {name:'Romanian Deadlift',scheme:'3×10',sets:3},
+    {name:'Box Jumps',scheme:'4×5',sets:4},
+    {name:'Single-Leg Press',scheme:'3×10 each',sets:3},
+    {name:'Calf Raises',scheme:'4×20',sets:4},
+    {name:'Easy Run',scheme:'1–1.5 mi',sets:1},
+  ]},
+  5:{name:'SATURDAY',type:'Active Recovery',emoji:'😴',exercises:[
+    {name:'Walk or Light Bike',scheme:'20–30 min',sets:1},
+    {name:'Mobility / Stretching',scheme:'Hips + hammies',sets:1},
+    {name:'Pull-Up Bar (Home)',scheme:'2–3 easy sets',sets:1},
+  ]},
+  6:{name:'SUNDAY',type:'Game Day',emoji:'🏆',exercises:[
+    {name:'Dynamic Warm-Up',scheme:'10 min',sets:1},
+    {name:'Game',scheme:'Compete fully',sets:1,primary:true},
+    {name:'Post-Game Stretch',scheme:'10 min',sets:1},
+    {name:'Refuel + Rest',scheme:'Priority',sets:1},
+  ]},
+};
+const GOALS=[
+  {name:'Bench Press',start:115,now:135,target:160,unit:'lbs',lower:false},
+  {name:'Pull-Ups',start:0,now:2,target:10,unit:'reps',lower:false},
+  {name:'2-Mile Run',start:15,now:15,target:12,unit:'min',lower:true},
+  {name:'Back Squat',start:100,now:135,target:185,unit:'lbs',lower:false},
+];
+
+let currentDay=getTodayIndex(),activeModal=null,dragSrc=null;
+let plan=clone(BASE_PLAN),logs={};
+try{plan=JSON.parse(localStorage.getItem('ap'))||clone(BASE_PLAN)}catch{}
+try{logs=JSON.parse(localStorage.getItem('al'))||{}}catch{}
+function sp(){localStorage.setItem('ap',JSON.stringify(plan))}
+function sl(){localStorage.setItem('al',JSON.stringify(logs))}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function getTodayIndex(){const d=new Date().getDay();return d===0?6:d-1}
+function getDayKey(i){const d=new Date();d.setDate(d.getDate()+(i-getTodayIndex()));return d.toISOString().split('T')[0]+'_'+i}
+
+// SPLASH
+function runSplash(){
+  const bar=document.getElementById('splash-bar'),w=document.getElementById('splash-welcome');
+  let p=0;
+  const iv=setInterval(()=>{
+    p+=1.8;bar.style.width=p+'%';
+    if(p>=82)w.classList.add('show');
+    if(p>=100){clearInterval(iv);setTimeout(()=>{document.getElementById('splash').classList.add('gone');setTimeout(()=>document.getElementById('splash').style.display='none',600)},800)}
+  },25);
+}
+
+// TODAY
+function renderToday(){
+  const day=plan[currentDay];
+  document.getElementById('hero-day').textContent=day.name;
+  document.getElementById('hero-type').textContent=day.type;
+  renderStrip();renderExs();
+}
+function renderStrip(){
+  const s=document.getElementById('day-strip'),abbrs=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  s.innerHTML='';
+  for(let i=0;i<7;i++){
+    const done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0;
+    const c=document.createElement('div');
+    c.className='day-chip'+(i===currentDay?' active':'')+(done?' done':'');
+    c.innerHTML=`<span class="chip-abbr">${abbrs[i]}</span><span class="chip-name">${plan[i].name.slice(0,3)}</span><span class="chip-dot"></span>`;
+    c.onclick=()=>{currentDay=i;renderToday()};
+    s.appendChild(c);
+  }
+}
+function renderExs(){
+  const day=plan[currentDay],key=getDayKey(currentDay),dl=logs[key]||{};
+  let h=`<div class="workout-block"><div class="block-header"><span class="block-title">${day.type}</span><span class="block-count">${day.exercises.length} exercises</span></div>`;
+  day.exercises.forEach((ex,ei)=>{
+    const el=dl[ei]||{},m=EX_MUSCLE[ex.name]||'general';
+    let sh='';
+    if(ex.sets>1){
+      sh='<div class="sets-row">';
+      for(let s=0;s<ex.sets;s++){
+        const set=el[s],logged=set&&(set.weight||set.reps);
+        sh+=`<div class="set-box${logged?' logged':''}" onclick="openLog(${ei},${s})"><span class="set-n">SET ${s+1}</span><span class="set-wt">${logged&&set.weight?set.weight:'—'}</span><span class="set-rp">${logged&&set.reps?set.reps+'r':'tap'}</span></div>`;
+      }
+      sh+='</div>';
+    }else{
+      const set=el[0],logged=set&&(set.weight||set.note||set.reps);
+      sh=`<div class="set-box${logged?' logged':''}" style="min-width:88px;display:inline-flex" onclick="openLog(${ei},0)"><span class="set-n">LOG</span><span class="set-wt" style="font-size:12px">${logged?(set.note||set.weight||'✓'):'tap'}</span></div>`;
+    }
+    h+=`<div class="ex-row" draggable="true" ondragstart="ds(event,${ei})" ondragover="dov(event,${ei})" ondrop="dp(event,${ei})" ondragleave="dl(event)" ondragend="de()">
+      <div class="ex-top">
+        <div class="drag-handle"><span></span><span></span><span></span></div>
+        <div class="ex-info"><div class="ex-name">${ex.name}${ex.primary?'<span class="main-tag">MAIN</span>':''}</div><div class="ex-scheme">${ex.scheme} · ${m.toUpperCase()}</div></div>
+        <button class="swap-btn" onclick="openSwap(${ei})">SWAP</button>
+      </div>${sh}</div>`;
+  });
+  h+='</div>';
+  document.getElementById('workout-content').innerHTML=h;
+}
+
+// DRAG
+function ds(e,i){dragSrc=i;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+function dov(e,i){e.preventDefault();if(dragSrc!==null&&dragSrc!==i){document.querySelectorAll('.ex-row').forEach(r=>r.classList.remove('drag-over'));e.currentTarget.classList.add('drag-over')}}
+function dl(e){e.currentTarget.classList.remove('drag-over')}
+function de(){document.querySelectorAll('.ex-row').forEach(r=>{r.classList.remove('dragging');r.classList.remove('drag-over')});dragSrc=null}
+function dp(e,t){e.preventDefault();if(dragSrc===null||dragSrc===t)return;const exs=plan[currentDay].exercises;exs.splice(t,0,exs.splice(dragSrc,1)[0]);sp();renderExs()}
+
+// LOG
+function openLog(ei,si){
+  const ex=plan[currentDay].exercises[ei],key=getDayKey(currentDay),ex2=(logs[key]&&logs[key][ei]&&logs[key][ei][si])||{};
+  document.getElementById('log-title').textContent=ex.name;
+  document.getElementById('log-sub').textContent=`Set ${si+1} of ${ex.sets} · ${ex.scheme}`;
+  document.getElementById('log-weight').value=ex2.weight||'';
+  document.getElementById('log-reps').value=ex2.reps||'';
+  document.getElementById('log-note').value=ex2.note||'';
+  activeModal={type:'log',ei,si};
+  document.getElementById('log-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('log-weight').focus(),80);
+}
+function saveLog(){
+  if(!activeModal||activeModal.type!=='log')return;
+  const{ei,si}=activeModal,w=parseFloat(document.getElementById('log-weight').value)||null,r=parseInt(document.getElementById('log-reps').value)||null,n=document.getElementById('log-note').value.trim();
+  const key=getDayKey(currentDay);
+  if(!logs[key])logs[key]={};if(!logs[key][ei])logs[key][ei]={};
+  logs[key][ei][si]={weight:w,reps:r,note:n,exName:plan[currentDay].exercises[ei].name,ts:Date.now()};
+  sl();closeModals();renderStrip();renderExs();
+}
+
+// SWAP
+function openSwap(ei){
+  const ex=plan[currentDay].exercises[ei],m=EX_MUSCLE[ex.name]||'chest',alts=SWAPS[m]||[];
+  let h=`<div class="sheet-title">SWAP EXERCISE</div><div class="sheet-sub">Replacing ${ex.name} · same ${m.toUpperCase()} focus</div>`;
+  alts.forEach(a=>{
+    const cur=a===ex.name;
+    h+=`<div class="swap-option" onclick="${cur?'':('doSwap('+ei+','+JSON.stringify(a)+')')}"><span class="swap-muscle">${m.toUpperCase()}</span><span class="swap-name">${a}</span>${cur?'<span class="swap-current">CURRENT</span>':'<span class="swap-arrow">→</span>'}</div>`;
+  });
+  h+='<button class="cancel-btn" style="margin-top:16px" onclick="closeModals()">Cancel</button>';
+  document.getElementById('swap-content').innerHTML=h;
+  activeModal={type:'swap',ei};
+  document.getElementById('swap-modal').classList.add('open');
+}
+function doSwap(ei,name){plan[currentDay].exercises[ei].name=name;sp();closeModals();renderExs()}
+function closeModals(){document.getElementById('log-modal').classList.remove('open');document.getElementById('swap-modal').classList.remove('open');activeModal=null}
+
+// WEEK
+function renderWeek(){
+  const today=getTodayIndex(),abbrs=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  let h='';
+  for(let i=0;i<7;i++){
+    const done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0,isT=i===today;
+    const badge=done?'<span class="week-badge wb-done">DONE ✓</span>':isT?'<span class="week-badge wb-today">TODAY</span>':'<span class="week-badge wb-next">NEXT</span>';
+    h+=`<div class="week-row" onclick="gotoDay(${i})"><div class="week-icon">${plan[i].emoji}</div><div style="flex:1"><div class="week-dname">${abbrs[i]} — ${plan[i].name.slice(0,3)}</div><div class="week-dtype">${plan[i].type}</div></div>${badge}</div>`;
+  }
+  document.getElementById('week-rows').innerHTML=h;
+}
+function gotoDay(i){currentDay=i;showPage('today',0)}
+
+// GOALS
+function renderGoals(){
+  let h='';
+  GOALS.forEach(g=>{
+    const p=g.lower?Math.min(100,Math.max(0,Math.round(((g.start-g.now)/(g.start-g.target))*100))):Math.min(100,Math.max(0,Math.round(((g.now-g.start)/(g.target-g.start))*100)));
+    h+=`<div class="goal-block"><div class="goal-top"><span class="goal-nm">${g.name}</span><span class="goal-pct">${p}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${p}%"></div></div><div class="goal-nums"><span>Start: ${g.start}${g.unit}</span><span>Now: ${g.now}${g.unit}</span><span>Target: ${g.target}${g.unit}</span></div></div>`;
+  });
+  document.getElementById('goals-content').innerHTML=h;
+}
+
+// REPORT
+function buildAndCopy(){
+  const notes=document.getElementById('week-notes').value.trim();
+  const abbrs=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let ls='';
+  for(let i=0;i<7;i++){
+    const key=getDayKey(i),dl=logs[key];
+    if(dl&&Object.keys(dl).length>0){
+      ls+=`\n${abbrs[i]} — ${plan[i].type}:\n`;
+      Object.keys(dl).forEach(ei=>{
+        const ex=plan[i].exercises[ei];if(!ex)return;
+        const sets=Object.values(dl[ei]).map(s=>{
+          if(s.weight&&s.reps)return `${s.weight}lbs×${s.reps}${s.note?' ('+s.note+')':''}`;
+          if(s.note)return s.note;return'✓';
+        }).join(', ');
+        ls+=`  ${ex.name}: ${sets}\n`;
+      });
+    }
+  }
+  let sw='';
+  for(let i=0;i<7;i++){
+    plan[i].exercises.forEach((ex,ei)=>{
+      const orig=BASE_PLAN[i].exercises[ei];
+      if(orig&&ex.name!==orig.name)sw+=`  ${abbrs[i]}: ${orig.name} → ${ex.name}\n`;
+    });
+  }
+  const report=`=== WEEKLY CHECK-IN ${new Date().toLocaleDateString()} ===
+PHASE: 1 — Base Build
+
+LOGGED WORKOUTS:${ls||'\n  Nothing logged in app this week.'}
+${sw?'EXERCISE SWAPS:\n'+sw:''}MY NOTES:
+${notes||'(no notes added)'}
+
+---
+Please: 1) Tell me what to keep or adjust 2) Give me next week's updated plan 3) Progress weights where ready 4) Flag anything off`;
+
+  document.getElementById('report-preview').textContent=report;
+  document.getElementById('report-preview').style.display='block';
+  const btn=document.getElementById('big-copy-btn');
+  navigator.clipboard.writeText(report).then(()=>{
+    btn.textContent='COPIED — PASTE INTO CLAUDE ✓';btn.classList.add('success');
+    setTimeout(()=>{btn.textContent='COPY THIS WEEK TO CLAUDE';btn.classList.remove('success')},3500);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=report;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent='COPY THIS WEEK TO CLAUDE',3000);
+  });
+}
+
+// NAV
+const PAGES=['today','week','report','goals'];
+function showPage(name,idx){
+  PAGES.forEach(p=>document.getElementById('page-'+p).classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  if(name==='today')renderToday();
+  if(name==='week')renderWeek();
+  if(name==='goals')renderGoals();
+}
+
+// ONLINE
+function updateOnline(){const d=document.getElementById('online-dot');d.classList.toggle('online',navigator.onLine);d.title=navigator.onLine?'Online':'Offline — data saved to your phone'}
+window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
+
+// INIT
+document.getElementById('nav-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+updateOnline();renderToday();runSplash();
+['log-modal','swap-modal'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeModals()})});
+document.getElementById('log-reps').addEventListener('keydown',e=>{if(e.key==='Enter')saveLog()});
+</script>
+</body>
+</html>
