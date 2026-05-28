@@ -1,609 +1,829 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="ATHLETE">
-<meta name="theme-color" content="#060608">
-<title>ATHLETE</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --black:#060608;--void:#0c0c10;--pit:#131318;--cave:#1a1a22;
-  --steel:#26262e;--iron:#35353f;--ash:#55555f;--fog:#7a7a88;
-  --ghost:#c8c8d8;--white:#eeeef5;
-  --gold:#c8a84b;--gold-dim:#7a6428;--gold-glow:rgba(200,168,75,0.1);
-  --green-bright:#2ecc71;
-  --border:rgba(200,168,75,0.12);--border-mid:rgba(200,168,75,0.25);--border-bright:rgba(200,168,75,0.45);
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{font-size:16px}
-body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--ghost);min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+import { useState, useEffect, createContext, useContext } from "react";
 
-/* SPLASH */
-#splash{position:fixed;inset:0;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.5s ease}
-#splash.gone{opacity:0;pointer-events:none}
-.splash-logo{font-family:'Oswald',sans-serif;font-size:58px;font-weight:700;letter-spacing:8px;color:var(--gold);margin-bottom:6px}
-.splash-sub{font-size:11px;letter-spacing:4px;color:var(--ash);margin-bottom:64px;text-transform:uppercase}
-.splash-bar-bg{width:180px;height:2px;background:var(--iron);border-radius:2px;overflow:hidden}
-.splash-bar-fill{height:100%;width:0%;background:var(--gold);border-radius:2px;transition:width 0.04s linear}
-.splash-welcome{position:absolute;bottom:64px;font-family:'Oswald',sans-serif;font-size:24px;letter-spacing:4px;color:var(--white);opacity:0;transition:opacity 0.7s ease;text-align:center}
-.splash-welcome.show{opacity:1}
-
-/* NAV */
-.nav{position:sticky;top:0;z-index:100;background:var(--void);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
-.nav-logo{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:4px;color:var(--gold)}
-.nav-right{display:flex;align-items:center;gap:12px}
-.nav-date{font-size:11px;color:var(--ash);letter-spacing:1px}
-.offline-dot{width:7px;height:7px;border-radius:50%;background:var(--ash);transition:all 0.3s}
-.offline-dot.online{background:var(--green-bright);box-shadow:0 0 6px var(--green-bright)}
-
-/* TABS */
-.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--void);border-top:1px solid var(--border);display:flex;padding:10px 0 22px;z-index:100}
-.tab-btn{flex:1;background:none;border:none;color:var(--ash);display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:0.5px;cursor:pointer;transition:color 0.2s}
-.tab-btn.active{color:var(--gold)}
-.tab-icon{font-size:18px}
-
-/* PAGES */
-.page{display:none;padding-bottom:90px;min-height:calc(100vh - 54px)}
-.page.active{display:block}
-
-/* HERO */
-.hero{background:var(--void);border-bottom:1px solid var(--border);padding:20px 20px 24px}
-.phase-tag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;letter-spacing:2px;color:var(--gold-dim);border:1px solid var(--border);padding:4px 10px;border-radius:2px;margin-bottom:12px;text-transform:uppercase}
-.phase-tag::before{content:'';width:5px;height:5px;background:var(--gold);border-radius:50%}
-.hero-day{font-family:'Oswald',sans-serif;font-size:48px;font-weight:700;color:var(--white);letter-spacing:2px;line-height:1;margin-bottom:4px}
-.hero-type{font-size:13px;color:var(--fog);letter-spacing:1px}
-
-/* DAY STRIP */
-.day-strip{display:flex;gap:6px;padding:14px 16px;overflow-x:auto;scrollbar-width:none;background:var(--void);border-bottom:1px solid var(--border-mid)}
-.day-strip::-webkit-scrollbar{display:none}
-.day-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:var(--pit);transition:all 0.15s}
-.day-chip.active{border-color:var(--gold);background:var(--gold-glow)}
-.day-chip.active .chip-name{color:var(--gold)}
-.day-chip.done .chip-dot{background:var(--gold)}
-.chip-abbr{font-size:9px;color:var(--ash);font-weight:600;letter-spacing:1px}
-.chip-name{font-size:12px;font-weight:500;color:var(--ghost)}
-.chip-dot{width:4px;height:4px;border-radius:50%;background:transparent}
-
-/* WORKOUT */
-.workout-block{margin:12px 14px;background:var(--pit);border:1px solid var(--border);border-radius:4px;overflow:hidden}
-.block-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.block-title{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
-.block-count{font-size:11px;color:var(--ash)}
-.ex-row{border-bottom:1px solid var(--border);padding:12px 14px;user-select:none}
-.ex-row:last-child{border-bottom:none}
-.ex-row.dragging{opacity:0.3}
-.ex-row.drag-over{border-top:2px solid var(--gold)}
-.ex-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.drag-handle{display:flex;flex-direction:column;gap:3px;padding:4px 2px;cursor:grab;flex-shrink:0}
-.drag-handle span{display:block;width:18px;height:1.5px;background:var(--iron);border-radius:1px}
-.ex-info{flex:1}
-.ex-name{font-size:14px;font-weight:500;color:var(--white);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.ex-scheme{font-family:'DM Mono',monospace;font-size:11px;color:var(--ash);margin-top:2px}
-.swap-btn{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--ash);border:1px solid var(--border);background:var(--steel);padding:5px 11px;border-radius:2px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
-.swap-btn:active{border-color:var(--gold);color:var(--gold)}
-.sets-row{display:flex;gap:8px;flex-wrap:wrap}
-.set-box{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;min-width:56px;border:1px solid var(--border);border-radius:3px;background:var(--cave);cursor:pointer;transition:all 0.15s}
-.set-box.logged{border-color:var(--gold);background:var(--gold-glow)}
-.set-box.logged .set-wt{color:var(--gold)}
-.set-n{font-size:9px;color:var(--ash);letter-spacing:1px;text-transform:uppercase}
-.set-wt{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--ghost)}
-.set-rp{font-size:9px;color:var(--ash)}
-.main-tag{font-size:9px;font-weight:700;color:var(--gold);border:1px solid var(--gold-dim);padding:1px 6px;border-radius:2px;letter-spacing:0.5px}
-
-/* MODALS */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.sheet{background:var(--pit);border-top:1px solid var(--border-bright);border-radius:12px 12px 0 0;width:100%;max-width:430px;padding:24px 22px 44px;animation:up 0.22s ease}
-@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.sheet-title{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;letter-spacing:2px;color:var(--white);margin-bottom:4px}
-.sheet-sub{font-size:12px;color:var(--ash);margin-bottom:20px;letter-spacing:0.5px}
-.input-row{display:flex;gap:12px;margin-bottom:16px}
-.input-field{flex:1}
-.input-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--ash);margin-bottom:6px;display:block;text-transform:uppercase}
-.input-box{width:100%;padding:13px 14px;background:var(--cave);border:1px solid var(--border-mid);border-radius:3px;color:var(--white);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;outline:none;transition:border-color 0.15s}
-.input-box:focus{border-color:var(--gold)}
-.input-sm{font-size:14px;padding:12px 14px}
-.confirm-btn{width:100%;padding:14px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;border:none;border-radius:3px;cursor:pointer;margin-bottom:10px;transition:opacity 0.15s}
-.confirm-btn:active{opacity:0.8}
-.cancel-btn{width:100%;padding:10px;background:none;border:none;color:var(--ash);font-size:13px;cursor:pointer}
-.swap-option{padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px}
-.swap-option:last-child{border-bottom:none}
-.swap-option:active{opacity:0.6}
-.swap-muscle{font-size:10px;color:var(--ash);letter-spacing:1px;width:64px;flex-shrink:0;text-transform:uppercase}
-.swap-name{font-size:14px;color:var(--white);font-weight:500}
-.swap-arrow{margin-left:auto;color:var(--gold);font-size:16px}
-.swap-current{font-size:10px;color:var(--gold);padding:2px 8px;border:1px solid var(--border-mid);border-radius:2px;margin-left:auto}
-
-/* PAGE HEADER */
-.page-header{padding:22px 18px 14px;border-bottom:1px solid var(--border)}
-.page-ttl{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;letter-spacing:3px;color:var(--white)}
-.page-sub{font-size:12px;color:var(--ash);margin-top:3px;letter-spacing:1px}
-
-/* WEEK */
-.week-row{margin:10px 14px 0;background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer}
-.week-row:active{border-color:var(--gold)}
-.week-icon{width:40px;height:40px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--cave);border:1px solid var(--border);flex-shrink:0}
-.week-dname{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:1px;color:var(--white)}
-.week-dtype{font-size:12px;color:var(--ash);margin-top:2px}
-.week-badge{font-size:10px;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:2px;margin-left:auto;white-space:nowrap}
-.wb-done{background:rgba(46,204,113,0.1);color:var(--green-bright);border:1px solid rgba(46,204,113,0.2)}
-.wb-today{background:var(--gold-glow);color:var(--gold);border:1px solid var(--border-mid)}
-.wb-next{border:1px solid var(--border);color:var(--ash)}
-
-/* GOALS */
-.goal-block{margin:10px 14px 0;background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:16px}
-.goal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-.goal-nm{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:1px;color:var(--white)}
-.goal-pct{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold)}
-.bar-bg{height:4px;background:var(--cave);overflow:hidden}
-.bar-fill{height:100%;background:var(--gold);transition:width 0.6s ease}
-.goal-nums{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--ash)}
-
-/* REPORT PAGE */
-.rp-inner{padding:0 14px 14px}
-.rp-intro{font-size:13px;color:var(--ash);line-height:1.7;margin:16px 0 18px}
-.section-lbl{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--ash);text-transform:uppercase;margin-bottom:8px;display:block}
-.notes-area{width:100%;height:150px;padding:14px;background:var(--pit);border:1px solid var(--border-mid);border-radius:4px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.7;resize:none;outline:none;margin-bottom:16px;display:block}
-.notes-area:focus{border-color:var(--gold)}
-.big-copy-btn{width:100%;padding:20px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:3px;border:none;border-radius:4px;cursor:pointer;margin-bottom:14px;transition:all 0.2s}
-.big-copy-btn:active{opacity:0.8}
-.big-copy-btn.success{background:var(--green-bright)}
-.report-preview{background:var(--pit);border:1px solid var(--border);border-radius:4px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.8;color:var(--ghost);white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;margin-bottom:14px}
-
-/* SHORTCUT GUIDE */
-.sc-wrap{margin:10px 14px 0}
-.sc-section-title{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:3px;color:var(--white);margin-bottom:10px;padding:20px 0 0}
-.sc-card{background:var(--pit);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:10px}
-.sc-card-head{padding:12px 16px;background:var(--cave);border-bottom:1px solid var(--border)}
-.sc-card-ttl{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
-.sc-card-body{padding:14px 16px}
-.sc-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
-.sc-step:last-child{margin-bottom:0}
-.sc-num{width:22px;height:22px;border-radius:2px;background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
-.sc-text{font-size:13px;color:var(--ghost);line-height:1.65}
-.sc-text b{color:var(--white)}
-.sc-code{font-family:'DM Mono',monospace;font-size:11px;background:var(--cave);color:var(--gold);padding:2px 6px;border-radius:2px}
-.sc-note{font-size:11px;color:var(--ash);margin-top:5px;line-height:1.5;display:block}
-.sc-day-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-.sc-day-row{display:flex;gap:10px;align-items:center;font-size:12px}
-.sc-day-lbl{color:var(--ash);width:70px;flex-shrink:0}
-.sc-day-val{color:var(--white);font-weight:500}
-</style>
-</head>
-<body>
-
-<!-- SPLASH -->
-<div id="splash">
-  <div class="splash-logo">ATHLETE</div>
-  <div class="splash-sub">Summer 2026 · D1 Prep</div>
-  <div class="splash-bar-bg"><div class="splash-bar-fill" id="splash-bar"></div></div>
-  <div class="splash-welcome" id="splash-welcome">Welcome, Watts.</div>
-</div>
-
-<!-- NAV -->
-<nav class="nav">
-  <div class="nav-logo">ATHLETE</div>
-  <div class="nav-right">
-    <div class="nav-date" id="nav-date"></div>
-    <div class="offline-dot" id="online-dot" title=""></div>
-  </div>
-</nav>
-
-<!-- PAGE: TODAY -->
-<div class="page active" id="page-today">
-  <div class="hero">
-    <div class="phase-tag">Phase 1 · Base Build</div>
-    <div class="hero-day" id="hero-day">MONDAY</div>
-    <div class="hero-type" id="hero-type">Upper — Push</div>
-  </div>
-  <div class="day-strip" id="day-strip"></div>
-  <div id="workout-content"></div>
-</div>
-
-<!-- PAGE: WEEK -->
-<div class="page" id="page-week">
-  <div class="page-header">
-    <div class="page-ttl">THIS WEEK</div>
-    <div class="page-sub">Phase 1 · Base Build · Week 1</div>
-  </div>
-  <div id="week-rows"></div>
-</div>
-
-<!-- PAGE: REPORT (copy page) -->
-<div class="page" id="page-report">
-  <div class="page-header">
-    <div class="page-ttl">WEEKLY REPORT</div>
-    <div class="page-sub">One tap · copy · paste to Claude</div>
-  </div>
-  <div class="rp-inner">
-    <p class="rp-intro">Every set, every weight, every swap you made — bundled automatically. Add any notes, hit the button, paste into Claude. That's it. I'll adjust next week based on exactly what you did.</p>
-    <span class="section-lbl">Add your notes for the week</span>
-    <textarea class="notes-area" id="week-notes" placeholder="What went well? What was hard? Anything sore? How were your runs? Be honest — this is what shapes next week."></textarea>
-    <div class="report-preview" id="report-preview"></div>
-    <button class="big-copy-btn" id="big-copy-btn" onclick="buildAndCopy()">COPY THIS WEEK TO CLAUDE</button>
-  </div>
-</div>
-
-<!-- PAGE: GOALS + SHORTCUT GUIDE -->
-<div class="page" id="page-goals">
-  <div class="page-header">
-    <div class="page-ttl">TARGETS</div>
-    <div class="page-sub">Summer 2026 · D1 prep</div>
-  </div>
-  <div id="goals-content"></div>
-
-  <!-- SHORTCUT GUIDE -->
-  <div class="sc-wrap">
-    <div class="sc-section-title">NOTIFICATION SETUP</div>
-
-    <div class="sc-card">
-      <div class="sc-card-head"><div class="sc-card-ttl">Step 1 — Create the Automation</div></div>
-      <div class="sc-card-body">
-        <div class="sc-step"><div class="sc-num">1</div><div class="sc-text">Open the <b>Shortcuts</b> app on your iPhone. Tap the <b>Automation</b> tab at the bottom of the screen.</div></div>
-        <div class="sc-step"><div class="sc-num">2</div><div class="sc-text">Tap <b>+</b> in the top right → tap <b>New Automation</b>.</div></div>
-        <div class="sc-step"><div class="sc-num">3</div><div class="sc-text">Scroll down, tap <b>Time of Day</b>. Set the time to <b>7:00 AM</b>. Set repeat to <b>Daily</b>. Tap <b>Next</b>.</div></div>
-      </div>
-    </div>
-
-    <div class="sc-card">
-      <div class="sc-card-head"><div class="sc-card-ttl">Step 2 — Build the Day Logic</div></div>
-      <div class="sc-card-body">
-        <div class="sc-step"><div class="sc-num">4</div><div class="sc-text">Tap <b>Add Action</b>. Search <b>"Current Date"</b> and add it. Then add another action: search <b>"Format Date"</b>. Set format to <b>Custom</b> and type <span class="sc-code">EEEE</span> — this outputs the full day name like "Monday".<span class="sc-note">This is the engine that detects what day it is automatically.</span></div></div>
-        <div class="sc-step"><div class="sc-num">5</div><div class="sc-text">Add action: search <b>"If"</b> and add the <b>If</b> block. Set it to: <b>Formatted Date</b> → <b>contains</b> → <b>Monday</b>.</div></div>
-        <div class="sc-step"><div class="sc-num">6</div><div class="sc-text">Inside the If block, add action: <b>"Show Notification"</b>.<br><br>
-          Title: <span class="sc-code">Upper Body Day 💪</span><br>
-          Body: <span class="sc-code">Don't forget to do your workout — track it in ATHLETE</span><br>
-          <span class="sc-note">Leave "Play Sound" on so it actually alerts you.</span>
-        </div></div>
-        <div class="sc-step"><div class="sc-num">7</div><div class="sc-text">Also inside the If block, add action: <b>"Open URL"</b>. Paste the URL of your saved ATHLETE file. (Open the file in Safari → long press the address bar → Copy → paste here.)<span class="sc-note">When you tap the notification, this opens the app directly.</span></div></div>
-        <div class="sc-step"><div class="sc-num">8</div><div class="sc-text">Tap <b>Otherwise</b> at the bottom of the If block. Add <b>another If</b> for each remaining day. Repeat steps 5–7 with these titles:
-          <div class="sc-day-list">
-            <div class="sc-day-row"><span class="sc-day-lbl">Tuesday</span><span class="sc-day-val">Pull Day + Legs 🦾</span></div>
-            <div class="sc-day-row"><span class="sc-day-lbl">Wednesday</span><span class="sc-day-val">Soccer &amp; Conditioning ⚽</span></div>
-            <div class="sc-day-row"><span class="sc-day-lbl">Thursday</span><span class="sc-day-val">Upper Body Volume 💪</span></div>
-            <div class="sc-day-row"><span class="sc-day-lbl">Friday</span><span class="sc-day-val">Lower Body + Explosives 🦵</span></div>
-            <div class="sc-day-row"><span class="sc-day-lbl">Saturday</span><span class="sc-day-val">Active Recovery 😴</span></div>
-            <div class="sc-day-row"><span class="sc-day-lbl">Sunday</span><span class="sc-day-val">Game Day 🏆</span></div>
-          </div>
-          <span class="sc-note">Body for every day: <span class="sc-code">Don't forget to do your workout — track it in ATHLETE</span></span>
-        </div></div>
-      </div>
-    </div>
-
-    <div class="sc-card" style="margin-bottom:0">
-      <div class="sc-card-head"><div class="sc-card-ttl">Step 3 — Finalize</div></div>
-      <div class="sc-card-body">
-        <div class="sc-step"><div class="sc-num">9</div><div class="sc-text">When all 7 days are set up, tap <b>Next</b> in the top right. On the summary screen, find the toggle that says <b>"Ask Before Running"</b> and turn it <b>OFF</b>.<span class="sc-note">This makes it fully automatic — no confirmation required every morning.</span></div></div>
-        <div class="sc-step"><div class="sc-num">10</div><div class="sc-text">Tap <b>Done</b>. Every morning at 7am you'll get a notification with your workout type for that day. Tapping it opens ATHLETE directly. Zero extra steps.</div></div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- BOTTOM TABS -->
-<nav class="tabs">
-  <button class="tab-btn active" onclick="showPage('today',0)"><span class="tab-icon">⚡</span>TODAY</button>
-  <button class="tab-btn" onclick="showPage('week',1)"><span class="tab-icon">📅</span>WEEK</button>
-  <button class="tab-btn" onclick="showPage('report',2)"><span class="tab-icon">📋</span>REPORT</button>
-  <button class="tab-btn" onclick="showPage('goals',3)"><span class="tab-icon">🎯</span>GOALS</button>
-</nav>
-
-<!-- LOG MODAL -->
-<div class="overlay" id="log-modal">
-  <div class="sheet">
-    <div class="sheet-title" id="log-title">BENCH PRESS</div>
-    <div class="sheet-sub" id="log-sub">Set 1 of 4 · 4×6–8</div>
-    <div class="input-row">
-      <div class="input-field"><label class="input-label">Weight (lbs)</label><input class="input-box" type="number" id="log-weight" placeholder="135" inputmode="decimal"></div>
-      <div class="input-field"><label class="input-label">Reps</label><input class="input-box" type="number" id="log-reps" placeholder="8" inputmode="numeric"></div>
-    </div>
-    <div class="input-field" style="margin-bottom:16px"><label class="input-label">Note (optional)</label><input class="input-box input-sm" type="text" id="log-note" placeholder="felt good · felt heavy · form off..."></div>
-    <button class="confirm-btn" onclick="saveLog()">LOG SET</button>
-    <button class="cancel-btn" onclick="closeModals()">Cancel</button>
-  </div>
-</div>
-
-<!-- SWAP MODAL -->
-<div class="overlay" id="swap-modal">
-  <div class="sheet" style="max-height:80vh;overflow-y:auto" id="swap-content"></div>
-</div>
-
-<script>
-const SWAPS={
-  chest:['Bench Press','Incline DB Press','Decline Press','DB Flys','Cable Crossovers','Chest Dips','Machine Press','Push-Ups (weighted)'],
-  shoulder:['Overhead Press','Arnold Press','Lateral Raises','Front Raises','Cable Lateral Raise','DB Shoulder Press','Upright Row'],
-  triceps:['Tricep Dips','Skull Crushers','Cable Pushdowns','Overhead Tricep Ext','Close-Grip Bench','Diamond Push-Ups'],
-  back:['Pull-Ups','Lat Pulldown','Seated Cable Row','Bent-Over Row','T-Bar Row','Single-Arm DB Row','Face Pulls','Chest-Supported Row'],
-  biceps:['Barbell Curl','DB Curl','Hammer Curl','Cable Curl','Preacher Curl','Concentration Curl'],
-  quad:['Back Squat','Leg Press','Front Squat','Hack Squat','Bulgarian Split Squat','Lunges','Step-Ups','Leg Extension'],
-  hamstring:['Romanian Deadlift','Nordic Curls','Leg Curl','Stiff-Leg Deadlift','Good Mornings'],
-  calf:['Standing Calf Raises','Seated Calf Raises','Leg Press Calf Raise','Single-Leg Calf Raise'],
-  core:['Plank','Hollow Hold','Ab Wheel','Leg Raises','Cable Crunch','Hanging Knee Raise','Dead Bug'],
-  explosive:['Box Jumps','Broad Jumps','Med Ball Slam','Jump Squat','Depth Jump'],
-  cardio:['2-Mile Run','1-Mile Time Trial','Sprint Intervals','Bike Intervals','Rowing Machine'],
-  agility:['Agility Ladder','Cone Drills','T-Drill','5-10-5 Shuttle','L-Drill'],
-};
-const EX_MUSCLE={
-  'Bench Press':'chest','Incline Dumbbell Press':'chest','Overhead Press':'shoulder',
-  'Lateral Raises':'shoulder','Tricep Dips':'triceps','Plank / Hollow Hold':'core',
-  'Pull-Ups / Negatives':'back','Lat Pulldown':'back','Seated Cable Row':'back',
-  'Face Pulls':'shoulder','Bulgarian Split Squat':'quad','Nordic Curls':'hamstring',
-  'Bench Press (Volume)':'chest','Dumbbell Flys':'chest','Arnold Press':'shoulder',
-  'Cable Row':'back','Pull-Up Bar (Home)':'back','Ab Wheel / Leg Raises':'core',
-  'Back Squat':'quad','Romanian Deadlift':'hamstring','Box Jumps':'explosive',
-  'Single-Leg Press':'quad','Calf Raises':'calf','Easy Run':'cardio',
-  '2-Mile Run (Paced)':'cardio','40m Sprint Repeats':'agility','Agility Ladders / Cones':'agility',
-  'Ball Work / Touches':'agility','Mobility Cool-Down':'core','Walk or Light Bike':'cardio',
-  'Mobility / Stretching':'core','Dynamic Warm-Up':'core','Game':'cardio',
-  'Post-Game Stretch':'core','Refuel + Rest':'core',
-};
-const BASE_PLAN={
-  0:{name:'MONDAY',type:'Upper — Push',emoji:'💪',exercises:[
-    {name:'Bench Press',scheme:'4×6–8',sets:4,primary:true},
-    {name:'Incline Dumbbell Press',scheme:'3×10',sets:3},
-    {name:'Overhead Press',scheme:'3×10',sets:3},
-    {name:'Lateral Raises',scheme:'3×15',sets:3},
-    {name:'Tricep Dips',scheme:'3×12',sets:3},
-    {name:'Plank / Hollow Hold',scheme:'3×45s',sets:3},
-  ]},
-  1:{name:'TUESDAY',type:'Upper — Pull + Legs',emoji:'🦾',exercises:[
-    {name:'Pull-Ups / Negatives',scheme:'Max×4 sets',sets:4,primary:true},
-    {name:'Lat Pulldown',scheme:'4×8–10',sets:4},
-    {name:'Seated Cable Row',scheme:'3×10',sets:3},
-    {name:'Face Pulls',scheme:'3×15',sets:3},
-    {name:'Bulgarian Split Squat',scheme:'3×10 each',sets:3},
-    {name:'Nordic Curls',scheme:'3×6',sets:3},
-  ]},
-  2:{name:'WEDNESDAY',type:'Soccer + Conditioning',emoji:'⚽',exercises:[
-    {name:'2-Mile Run (Paced)',scheme:'Track time',sets:1,primary:true},
-    {name:'40m Sprint Repeats',scheme:'8–10 reps',sets:1},
-    {name:'Agility Ladders / Cones',scheme:'15 min',sets:1},
-    {name:'Ball Work / Touches',scheme:'20 min',sets:1},
-    {name:'Mobility Cool-Down',scheme:'10 min',sets:1},
-  ]},
-  3:{name:'THURSDAY',type:'Upper — Volume Push',emoji:'💪',exercises:[
-    {name:'Bench Press (Volume)',scheme:'4×10–12',sets:4,primary:true},
-    {name:'Dumbbell Flys',scheme:'3×12',sets:3},
-    {name:'Arnold Press',scheme:'3×10',sets:3},
-    {name:'Cable Row',scheme:'3×12',sets:3},
-    {name:'Pull-Up Bar (Home)',scheme:'3×failure',sets:3},
-    {name:'Ab Wheel / Leg Raises',scheme:'3×12',sets:3},
-  ]},
-  4:{name:'FRIDAY',type:'Lower + Explosive',emoji:'🦵',exercises:[
-    {name:'Back Squat',scheme:'4×6–8',sets:4,primary:true},
-    {name:'Romanian Deadlift',scheme:'3×10',sets:3},
-    {name:'Box Jumps',scheme:'4×5',sets:4},
-    {name:'Single-Leg Press',scheme:'3×10 each',sets:3},
-    {name:'Calf Raises',scheme:'4×20',sets:4},
-    {name:'Easy Run',scheme:'1–1.5 mi',sets:1},
-  ]},
-  5:{name:'SATURDAY',type:'Active Recovery',emoji:'😴',exercises:[
-    {name:'Walk or Light Bike',scheme:'20–30 min',sets:1},
-    {name:'Mobility / Stretching',scheme:'Hips + hammies',sets:1},
-    {name:'Pull-Up Bar (Home)',scheme:'2–3 easy sets',sets:1},
-  ]},
-  6:{name:'SUNDAY',type:'Game Day',emoji:'🏆',exercises:[
-    {name:'Dynamic Warm-Up',scheme:'10 min',sets:1},
-    {name:'Game',scheme:'Compete fully',sets:1,primary:true},
-    {name:'Post-Game Stretch',scheme:'10 min',sets:1},
-    {name:'Refuel + Rest',scheme:'Priority',sets:1},
-  ]},
-};
-const GOALS=[
-  {name:'Bench Press',start:115,now:135,target:160,unit:'lbs',lower:false},
-  {name:'Pull-Ups',start:0,now:2,target:10,unit:'reps',lower:false},
-  {name:'2-Mile Run',start:15,now:15,target:12,unit:'min',lower:true},
-  {name:'Back Squat',start:100,now:135,target:185,unit:'lbs',lower:false},
+// ═══════════════════════════════════════════════════════
+// THEME SYSTEM
+// ═══════════════════════════════════════════════════════
+const PRESETS = [
+  { id:"pure-black", name:"Pure Black",  bg:"#000000", surface:"#181818", card:"#222222", raised:"#2C2C2C" },
+  { id:"near-black", name:"Near Black",  bg:"#0D1013", surface:"#1A1E23", card:"#22272E", raised:"#2A2F37" },
+  { id:"charcoal",   name:"Charcoal",    bg:"#1C1F23", surface:"#272B30", card:"#31363C", raised:"#3C4248" },
+  { id:"slate",      name:"Slate",       bg:"#1A1F2E", surface:"#22293A", card:"#2A3248", raised:"#333D58" },
+  { id:"navy",       name:"Navy",        bg:"#0D1520", surface:"#162030", card:"#1E2D40", raised:"#263850" },
 ];
+const DEFAULT_ACCENTS = { workout:"#7A1F2E", finance:"#1A6B40", plan:"#7A8A9A" };
+const makeG = p => ({
+  bg:p.bg, surface:p.surface, card:p.card, raised:p.raised,
+  border:"rgba(255,255,255,0.10)", borderM:"rgba(255,255,255,0.20)", borderB:"rgba(255,255,255,0.36)",
+  t1:"#FFFFFF", t2:"#FFFFFF", t3:"#FFFFFF", t4:"#E0E0E0", dim:"#777777",
+});
+const makeA = hex => ({ main:hex, light:hex, dim:hex+"33", glow:hex+"2A" });
+const ThemeCtx = createContext(null);
+const useTheme = () => useContext(ThemeCtx);
 
-let currentDay=getTodayIndex(),activeModal=null,dragSrc=null;
-let plan=clone(BASE_PLAN),logs={};
-try{plan=JSON.parse(localStorage.getItem('ap'))||clone(BASE_PLAN)}catch{}
-try{logs=JSON.parse(localStorage.getItem('al'))||{}}catch{}
-function sp(){localStorage.setItem('ap',JSON.stringify(plan))}
-function sl(){localStorage.setItem('al',JSON.stringify(logs))}
-function clone(o){return JSON.parse(JSON.stringify(o))}
-function getTodayIndex(){const d=new Date().getDay();return d===0?6:d-1}
-function getDayKey(i){const d=new Date();d.setDate(d.getDate()+(i-getTodayIndex()));return d.toISOString().split('T')[0]+'_'+i}
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const F = "'Oswald', sans-serif";
+const SCHED = [
+  {name:"Push", emoji:"↑", type:"Chest · Shoulders · Triceps"},
+  {name:"Pull", emoji:"↓", type:"Back · Biceps · Rear Delts"},
+  {name:"Legs", emoji:"⚡",type:"Quads · Hamstrings · Calves"},
+  {name:"Rest", emoji:"○", type:"Active Recovery"},
+  {name:"Upper",emoji:"△", type:"Upper Body Compound"},
+  {name:"Lower",emoji:"▽", type:"Lower Body Compound"},
+  {name:"Rest", emoji:"○", type:"Full Recovery"},
+];
+const DAYS  = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+const MFULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MABB  = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const PRIOS = ["Critical","High","Medium","Low"];
+const PCOL  = {Critical:"#B03030",High:"#2870C0",Medium:"#1E8050",Low:"#6A7A8A"};
+const RECUR = ["Once","Daily","Every Other Day","Weekly","Bi-weekly","Monthly"];
+const ECATS = [
+  {name:"Food & Dining",  icon:"◈",color:"#C0392B"},
+  {name:"Gas & Transport",icon:"◉",color:"#E67E22"},
+  {name:"Tuition & Fees", icon:"◆",color:"#2E86C1"},
+  {name:"Subscriptions",  icon:"◎",color:"#8E44AD"},
+  {name:"Clothing",       icon:"◇",color:"#D35400"},
+  {name:"Entertainment",  icon:"◐",color:"#16A085"},
+  {name:"Other",          icon:"○",color:"#7A8088"},
+];
+const ISRCS = [
+  {name:"Refereeing", icon:"⬡",color:"#2DB870"},
+  {name:"UGC Content",icon:"⬢",color:"#2980B9"},
+  {name:"SEO Writing",icon:"⬣",color:"#8E44AD"},
+  {name:"Part-time",  icon:"◈",color:"#C8A84B"},
+  {name:"Other",      icon:"○",color:"#7A8088"},
+];
+const INIT_TXN=[
+  {id:1,type:"expense",amount:67, category:"Food & Dining",  note:"Eating out",    date:"2026-05-08"},
+  {id:2,type:"income", amount:180,source:"Refereeing",        note:"Weekend games", date:"2026-05-10"},
+  {id:3,type:"expense",amount:42, category:"Gas & Transport", note:"Fill up",       date:"2026-05-12"},
+  {id:4,type:"income", amount:300,source:"Refereeing",        note:"Tournament",    date:"2026-05-15"},
+  {id:5,type:"expense",amount:28, category:"Food & Dining",   note:"Chipotle",      date:"2026-05-16"},
+];
+const now = new Date();
+const todayDow = now.getDay(); // 0=Sun Sunday-first
 
-// SPLASH
-function runSplash(){
-  const bar=document.getElementById('splash-bar'),w=document.getElementById('splash-welcome');
-  let p=0;
-  const iv=setInterval(()=>{
-    p+=1.8;bar.style.width=p+'%';
-    if(p>=82)w.classList.add('show');
-    if(p>=100){clearInterval(iv);setTimeout(()=>{document.getElementById('splash').classList.add('gone');setTimeout(()=>document.getElementById('splash').style.display='none',600)},800)}
-  },25);
-}
-
-// TODAY
-function renderToday(){
-  const day=plan[currentDay];
-  document.getElementById('hero-day').textContent=day.name;
-  document.getElementById('hero-type').textContent=day.type;
-  renderStrip();renderExs();
-}
-function renderStrip(){
-  const s=document.getElementById('day-strip'),abbrs=['MON','TUE','WED','THU','FRI','SAT','SUN'];
-  s.innerHTML='';
-  for(let i=0;i<7;i++){
-    const done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0;
-    const c=document.createElement('div');
-    c.className='day-chip'+(i===currentDay?' active':'')+(done?' done':'');
-    c.innerHTML=`<span class="chip-abbr">${abbrs[i]}</span><span class="chip-name">${plan[i].name.slice(0,3)}</span><span class="chip-dot"></span>`;
-    c.onclick=()=>{currentDay=i;renderToday()};
-    s.appendChild(c);
-  }
-}
-function renderExs(){
-  const day=plan[currentDay],key=getDayKey(currentDay),dl=logs[key]||{};
-  let h=`<div class="workout-block"><div class="block-header"><span class="block-title">${day.type}</span><span class="block-count">${day.exercises.length} exercises</span></div>`;
-  day.exercises.forEach((ex,ei)=>{
-    const el=dl[ei]||{},m=EX_MUSCLE[ex.name]||'general';
-    let sh='';
-    if(ex.sets>1){
-      sh='<div class="sets-row">';
-      for(let s=0;s<ex.sets;s++){
-        const set=el[s],logged=set&&(set.weight||set.reps);
-        sh+=`<div class="set-box${logged?' logged':''}" onclick="openLog(${ei},${s})"><span class="set-n">SET ${s+1}</span><span class="set-wt">${logged&&set.weight?set.weight:'—'}</span><span class="set-rp">${logged&&set.reps?set.reps+'r':'tap'}</span></div>`;
-      }
-      sh+='</div>';
-    }else{
-      const set=el[0],logged=set&&(set.weight||set.note||set.reps);
-      sh=`<div class="set-box${logged?' logged':''}" style="min-width:88px;display:inline-flex" onclick="openLog(${ei},0)"><span class="set-n">LOG</span><span class="set-wt" style="font-size:12px">${logged?(set.note||set.weight||'✓'):'tap'}</span></div>`;
-    }
-    h+=`<div class="ex-row" draggable="true" ondragstart="ds(event,${ei})" ondragover="dov(event,${ei})" ondrop="dp(event,${ei})" ondragleave="dl(event)" ondragend="de()">
-      <div class="ex-top">
-        <div class="drag-handle"><span></span><span></span><span></span></div>
-        <div class="ex-info"><div class="ex-name">${ex.name}${ex.primary?'<span class="main-tag">MAIN</span>':''}</div><div class="ex-scheme">${ex.scheme} · ${m.toUpperCase()}</div></div>
-        <button class="swap-btn" onclick="openSwap(${ei})">SWAP</button>
-      </div>${sh}</div>`;
+// ═══════════════════════════════════════════════════════
+// SESSION STORE
+// ═══════════════════════════════════════════════════════
+const useStore = (key, init) => {
+  const [v, setV] = useState(() => {
+    try { const s=sessionStorage.getItem(key); return s?JSON.parse(s):init; } catch { return init; }
   });
-  h+='</div>';
-  document.getElementById('workout-content').innerHTML=h;
-}
-
-// DRAG
-function ds(e,i){dragSrc=i;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
-function dov(e,i){e.preventDefault();if(dragSrc!==null&&dragSrc!==i){document.querySelectorAll('.ex-row').forEach(r=>r.classList.remove('drag-over'));e.currentTarget.classList.add('drag-over')}}
-function dl(e){e.currentTarget.classList.remove('drag-over')}
-function de(){document.querySelectorAll('.ex-row').forEach(r=>{r.classList.remove('dragging');r.classList.remove('drag-over')});dragSrc=null}
-function dp(e,t){e.preventDefault();if(dragSrc===null||dragSrc===t)return;const exs=plan[currentDay].exercises;exs.splice(t,0,exs.splice(dragSrc,1)[0]);sp();renderExs()}
-
-// LOG
-function openLog(ei,si){
-  const ex=plan[currentDay].exercises[ei],key=getDayKey(currentDay),ex2=(logs[key]&&logs[key][ei]&&logs[key][ei][si])||{};
-  document.getElementById('log-title').textContent=ex.name;
-  document.getElementById('log-sub').textContent=`Set ${si+1} of ${ex.sets} · ${ex.scheme}`;
-  document.getElementById('log-weight').value=ex2.weight||'';
-  document.getElementById('log-reps').value=ex2.reps||'';
-  document.getElementById('log-note').value=ex2.note||'';
-  activeModal={type:'log',ei,si};
-  document.getElementById('log-modal').classList.add('open');
-  setTimeout(()=>document.getElementById('log-weight').focus(),80);
-}
-function saveLog(){
-  if(!activeModal||activeModal.type!=='log')return;
-  const{ei,si}=activeModal,w=parseFloat(document.getElementById('log-weight').value)||null,r=parseInt(document.getElementById('log-reps').value)||null,n=document.getElementById('log-note').value.trim();
-  const key=getDayKey(currentDay);
-  if(!logs[key])logs[key]={};if(!logs[key][ei])logs[key][ei]={};
-  logs[key][ei][si]={weight:w,reps:r,note:n,exName:plan[currentDay].exercises[ei].name,ts:Date.now()};
-  sl();closeModals();renderStrip();renderExs();
-}
-
-// SWAP
-function openSwap(ei){
-  const ex=plan[currentDay].exercises[ei],m=EX_MUSCLE[ex.name]||'chest',alts=SWAPS[m]||[];
-  let h=`<div class="sheet-title">SWAP EXERCISE</div><div class="sheet-sub">Replacing ${ex.name} · same ${m.toUpperCase()} focus</div>`;
-  alts.forEach(a=>{
-    const cur=a===ex.name;
-    h+=`<div class="swap-option" onclick="${cur?'':('doSwap('+ei+','+JSON.stringify(a)+')')}"><span class="swap-muscle">${m.toUpperCase()}</span><span class="swap-name">${a}</span>${cur?'<span class="swap-current">CURRENT</span>':'<span class="swap-arrow">→</span>'}</div>`;
+  const set = fn => setV(prev => {
+    const next=typeof fn==="function"?fn(prev):fn;
+    try { sessionStorage.setItem(key,JSON.stringify(next)); } catch {}
+    return next;
   });
-  h+='<button class="cancel-btn" style="margin-top:16px" onclick="closeModals()">Cancel</button>';
-  document.getElementById('swap-content').innerHTML=h;
-  activeModal={type:'swap',ei};
-  document.getElementById('swap-modal').classList.add('open');
+  return [v, set];
+};
+
+// ═══════════════════════════════════════════════════════
+// SHARED ATOMS
+// ═══════════════════════════════════════════════════════
+function useToast() {
+  const [t,setT]=useState(null);
+  const show=msg=>{setT(msg);setTimeout(()=>setT(null),2000);};
+  return [t,show];
 }
-function doSwap(ei,name){plan[currentDay].exercises[ei].name=name;sp();closeModals();renderExs()}
-function closeModals(){document.getElementById('log-modal').classList.remove('open');document.getElementById('swap-modal').classList.remove('open');activeModal=null}
-
-// WEEK
-function renderWeek(){
-  const today=getTodayIndex(),abbrs=['MON','TUE','WED','THU','FRI','SAT','SUN'];
-  let h='';
-  for(let i=0;i<7;i++){
-    const done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0,isT=i===today;
-    const badge=done?'<span class="week-badge wb-done">DONE ✓</span>':isT?'<span class="week-badge wb-today">TODAY</span>':'<span class="week-badge wb-next">NEXT</span>';
-    h+=`<div class="week-row" onclick="gotoDay(${i})"><div class="week-icon">${plan[i].emoji}</div><div style="flex:1"><div class="week-dname">${abbrs[i]} — ${plan[i].name.slice(0,3)}</div><div class="week-dtype">${plan[i].type}</div></div>${badge}</div>`;
-  }
-  document.getElementById('week-rows').innerHTML=h;
+function Toast({msg}) {
+  const {G}=useTheme();
+  return <div style={{position:"fixed",top:14,left:"50%",transform:"translateX(-50%)",background:G.raised,border:`1px solid ${G.borderM}`,fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,textTransform:"uppercase",color:"#fff",padding:"10px 22px",borderRadius:4,zIndex:9999,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,0.6)"}}>{msg}</div>;
 }
-function gotoDay(i){currentDay=i;showPage('today',0)}
-
-// GOALS
-function renderGoals(){
-  let h='';
-  GOALS.forEach(g=>{
-    const p=g.lower?Math.min(100,Math.max(0,Math.round(((g.start-g.now)/(g.start-g.target))*100))):Math.min(100,Math.max(0,Math.round(((g.now-g.start)/(g.target-g.start))*100)));
-    h+=`<div class="goal-block"><div class="goal-top"><span class="goal-nm">${g.name}</span><span class="goal-pct">${p}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${p}%"></div></div><div class="goal-nums"><span>Start: ${g.start}${g.unit}</span><span>Now: ${g.now}${g.unit}</span><span>Target: ${g.target}${g.unit}</span></div></div>`;
-  });
-  document.getElementById('goals-content').innerHTML=h;
+function Card({children,style,onClick}) {
+  const {G}=useTheme();
+  return <div onClick={onClick} style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:6,padding:16,...style,cursor:onClick?"pointer":"default"}}>{children}</div>;
 }
+function Bar({value,max,color}) {
+  const {G}=useTheme();
+  const w=max>0?Math.min(100,(value/max)*100):0;
+  return <div style={{background:G.raised,borderRadius:2,height:4,overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",background:color,borderRadius:2,transition:"width 0.6s ease"}}/></div>;
+}
+function Tag({children,color}) {
+  return <span style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:2,color,border:`1px solid ${color}55`,borderRadius:3,padding:"2px 8px",textTransform:"uppercase"}}>{children}</span>;
+}
+function SH({label,accent}) {
+  const {G}=useTheme();
+  return <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:accent||G.dim,textTransform:"uppercase",marginBottom:14}}>{label}</div>;
+}
+const inp=(G)=>({background:G.raised,border:`1px solid ${G.borderM}`,borderRadius:4,padding:"11px 13px",color:"#fff",fontFamily:F,fontSize:14,fontWeight:400,width:"100%"});
 
-// REPORT
-function buildAndCopy(){
-  const notes=document.getElementById('week-notes').value.trim();
-  const abbrs=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let ls='';
-  for(let i=0;i<7;i++){
-    const key=getDayKey(i),dl=logs[key];
-    if(dl&&Object.keys(dl).length>0){
-      ls+=`\n${abbrs[i]} — ${plan[i].type}:\n`;
-      Object.keys(dl).forEach(ei=>{
-        const ex=plan[i].exercises[ei];if(!ex)return;
-        const sets=Object.values(dl[ei]).map(s=>{
-          if(s.weight&&s.reps)return `${s.weight}lbs×${s.reps}${s.note?' ('+s.note+')':''}`;
-          if(s.note)return s.note;return'✓';
-        }).join(', ');
-        ls+=`  ${ex.name}: ${sets}\n`;
-      });
-    }
-  }
-  let sw='';
-  for(let i=0;i<7;i++){
-    plan[i].exercises.forEach((ex,ei)=>{
-      const orig=BASE_PLAN[i].exercises[ei];
-      if(orig&&ex.name!==orig.name)sw+=`  ${abbrs[i]}: ${orig.name} → ${ex.name}\n`;
-    });
-  }
-  const report=`=== WEEKLY CHECK-IN ${new Date().toLocaleDateString()} ===
-PHASE: 1 — Base Build
+// ═══════════════════════════════════════════════════════
+// SVG ICONS
+// ═══════════════════════════════════════════════════════
+const HouseIcon=({active,color,dim})=>(
+  <svg width="36" height="32" viewBox="0 0 36 32" fill="none">
+    <path d="M18 2L2 15H6V29H14V20H22V29H30V15H34L18 2Z" fill={active?color:dim}/>
+  </svg>
+);
+const CalIcon=({active,color,dim,raised})=>(
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <path d="M4 9C4 7.3 5.3 6 7 6H25C26.7 6 28 7.3 28 9V14H4V9Z" fill={active?color:dim}/>
+    <path d="M4 14H28V26C28 27.1 27.1 28 26 28H6C4.9 28 4 27.1 4 26V14Z" fill={active?`${color}BB`:raised}/>
+    <rect x="10" y="3" width="3" height="7" rx="1.5" fill={active?"#fff":dim}/>
+    <rect x="19" y="3" width="3" height="7" rx="1.5" fill={active?"#fff":dim}/>
+    <rect x="7"  y="17" width="4" height="3" rx="1" fill={active?"#fff":dim}/>
+    <rect x="14" y="17" width="4" height="3" rx="1" fill={active?"#fff":dim}/>
+    <rect x="21" y="17" width="4" height="3" rx="1" fill={active?"#fff":dim}/>
+  </svg>
+);
 
-LOGGED WORKOUTS:${ls||'\n  Nothing logged in app this week.'}
-${sw?'EXERCISE SWAPS:\n'+sw:''}MY NOTES:
-${notes||'(no notes added)'}
-
----
-Please: 1) Tell me what to keep or adjust 2) Give me next week's updated plan 3) Progress weights where ready 4) Flag anything off`;
-
-  document.getElementById('report-preview').textContent=report;
-  document.getElementById('report-preview').style.display='block';
-  const btn=document.getElementById('big-copy-btn');
-  navigator.clipboard.writeText(report).then(()=>{
-    btn.textContent='COPIED — PASTE INTO CLAUDE ✓';btn.classList.add('success');
-    setTimeout(()=>{btn.textContent='COPY THIS WEEK TO CLAUDE';btn.classList.remove('success')},3500);
-  }).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=report;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
-    btn.textContent='COPIED ✓';setTimeout(()=>btn.textContent='COPY THIS WEEK TO CLAUDE',3000);
-  });
+// ═══════════════════════════════════════════════════════
+// GLOBAL BOTTOM NAV
+// ═══════════════════════════════════════════════════════
+function GlobalNav({onHome,onCalendar,calActive,accent}) {
+  const {G}=useTheme();
+  const col=accent||"#fff";
+  return (
+    <div style={{position:"fixed",bottom:0,left:0,right:0,maxWidth:480,margin:"0 auto",background:G.surface,borderTop:`1px solid ${G.border}`,display:"flex",zIndex:200,paddingBottom:"env(safe-area-inset-bottom,10px)"}}>
+      <button onClick={onHome} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"13px 0 10px"}}>
+        <HouseIcon active={!calActive} color={col} dim={G.dim}/>
+      </button>
+      <button onClick={onCalendar} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"13px 0 10px"}}>
+        <CalIcon active={calActive} color={col} dim={G.dim} raised={G.raised}/>
+      </button>
+    </div>
+  );
 }
 
-// NAV
-const PAGES=['today','week','report','goals'];
-function showPage(name,idx){
-  PAGES.forEach(p=>document.getElementById('page-'+p).classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
-  if(name==='today')renderToday();
-  if(name==='week')renderWeek();
-  if(name==='goals')renderGoals();
+// ═══════════════════════════════════════════════════════
+// APP TABS (top)
+// ═══════════════════════════════════════════════════════
+function AppTabs({tabs,active,onSelect,accent}) {
+  const {G}=useTheme();
+  return (
+    <div style={{display:"flex",background:G.surface,borderBottom:`1px solid ${G.border}`}}>
+      {tabs.map(tab=>(
+        <button key={tab.id} onClick={()=>onSelect(tab.id)}
+          style={{flex:1,padding:"13px 0",fontFamily:F,fontSize:12,fontWeight:400,letterSpacing:2,textTransform:"uppercase",color:active===tab.id?accent:G.dim,borderBottom:`2px solid ${active===tab.id?accent:"transparent"}`,transition:"all 0.15s"}}>
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-// ONLINE
-function updateOnline(){const d=document.getElementById('online-dot');d.classList.toggle('online',navigator.onLine);d.title=navigator.onLine?'Online':'Offline — data saved to your phone'}
-window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
+// ═══════════════════════════════════════════════════════
+// CALENDAR — Sunday first
+// ═══════════════════════════════════════════════════════
+function CalendarView({todos,accent}) {
+  const {G,A}=useTheme();
+  const [cm,setCm]=useState(now.getMonth());
+  const [cy,setCy]=useState(now.getFullYear());
+  const [sel,setSel]=useState(now.getDate());
+  const offset=new Date(cy,cm,1).getDay(); // 0=Sun → Sunday-first, no adjustment needed
+  const daysInMonth=new Date(cy,cm+1,0).getDate();
+  const getEvents=day=>{
+    const d=new Date(cy,cm,day);
+    const dow=d.getDay(); // 0=Sun
+    const schedIdx=dow===0?6:dow-1; // SCHED is Mon-indexed
+    const ws=SCHED[schedIdx];
+    const dateStr=`${cy}-${String(cm+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const evs=[];
+    if(ws.name!=="Rest") evs.push({label:`${ws.emoji} ${ws.name} Day`,sub:ws.type,ac:A.workout.light,type:"workout"});
+    todos.filter(t=>{
+      if(t.recurrence==="Daily") return true;
+      if(t.recurrence==="Weekly") return new Date(t.date).getDay()===d.getDay();
+      if(t.recurrence==="Monthly") return new Date(t.date).getDate()===d.getDate();
+      return t.date===dateStr;
+    }).forEach(t=>evs.push({label:t.text,sub:t.priority,ac:A.plan.light,done:t.done,type:"todo"}));
+    return evs;
+  };
+  const selEvs=sel?getEvents(sel):[];
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <button onClick={()=>{if(cm===0){setCm(11);setCy(y=>y-1);}else setCm(m=>m-1);setSel(null);}} style={{fontFamily:F,fontSize:22,fontWeight:300,padding:"4px 12px",color:G.t3,background:"none",border:"none",cursor:"pointer"}}>‹</button>
+        <div style={{fontFamily:F,fontSize:17,fontWeight:600,letterSpacing:2,color:"#fff"}}>{MFULL[cm].toUpperCase()} {cy}</div>
+        <button onClick={()=>{if(cm===11){setCm(0);setCy(y=>y+1);}else setCm(m=>m+1);setSel(null);}} style={{fontFamily:F,fontSize:22,fontWeight:300,padding:"4px 12px",color:G.t3,background:"none",border:"none",cursor:"pointer"}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:6}}>
+        {["S","M","T","W","T","F","S"].map((d,i)=>(
+          <div key={i} style={{textAlign:"center",fontFamily:F,fontSize:10,fontWeight:400,letterSpacing:1,color:G.dim}}>{d}</div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:16}}>
+        {Array.from({length:offset}).map((_,i)=><div key={`e${i}`}/>)}
+        {Array.from({length:daysInMonth}).map((_,i)=>{
+          const day=i+1,isToday=day===now.getDate()&&cm===now.getMonth()&&cy===now.getFullYear(),isSel=day===sel;
+          const evs=getEvents(day);
+          return (
+            <button key={day} onClick={()=>setSel(day)} style={{background:isSel?accent:isToday?G.raised:"none",border:`1px solid ${isSel?accent:isToday?G.borderM:G.border}`,borderRadius:4,padding:"7px 2px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",transition:"all 0.15s"}}>
+              <span style={{fontFamily:F,fontSize:13,fontWeight:isToday?"600":"300",color:isSel?"#fff":isToday?accent:"#fff"}}>{day}</span>
+              <div style={{display:"flex",gap:2}}>
+                {evs.some(e=>e.type==="workout")&&<div style={{width:4,height:4,borderRadius:"50%",background:isSel?"#fff":A.workout.light}}/>}
+                {evs.some(e=>e.type==="todo")   &&<div style={{width:4,height:4,borderRadius:"50%",background:isSel?"#fff":A.plan.light}}/>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {sel&&(
+        <Card>
+          <div style={{fontFamily:F,fontSize:15,fontWeight:400,letterSpacing:1,color:"#fff",marginBottom:12}}>{MFULL[cm].toUpperCase()} {sel}</div>
+          {selEvs.length===0
+            ?<div style={{fontFamily:F,fontSize:14,fontWeight:300,color:G.dim,textAlign:"center",padding:"12px 0"}}>Nothing scheduled</div>
+            :selEvs.map((ev,i)=>(
+              <div key={i} style={{display:"flex",gap:10,padding:"10px 0",borderBottom:i<selEvs.length-1?`1px solid ${G.border}`:"none",opacity:ev.done?0.4:1}}>
+                <div style={{width:2,background:ev.ac,borderRadius:2,alignSelf:"stretch",flexShrink:0,minHeight:18}}/>
+                <div>
+                  <div style={{fontFamily:F,fontSize:14,fontWeight:400,color:ev.done?G.dim:"#fff",textDecoration:ev.done?"line-through":"none"}}>{ev.label}</div>
+                  <div style={{fontFamily:F,fontSize:11,fontWeight:300,letterSpacing:2,color:G.dim,marginTop:3,textTransform:"uppercase"}}>{ev.sub}</div>
+                </div>
+              </div>
+            ))
+          }
+        </Card>
+      )}
+    </div>
+  );
+}
 
-// INIT
-document.getElementById('nav-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
-updateOnline();renderToday();runSplash();
-['log-modal','swap-modal'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeModals()})});
-document.getElementById('log-reps').addEventListener('keydown',e=>{if(e.key==='Enter')saveLog()});
-</script>
-</body>
-</html>
+// ═══════════════════════════════════════════════════════
+// SPLASHES
+// ═══════════════════════════════════════════════════════
+function WelcomeSplash({onDone}) {
+  const {G}=useTheme();
+  const [vis,setVis]=useState(false);
+  useEffect(()=>{const t1=setTimeout(()=>setVis(true),80),t2=setTimeout(onDone,2800);return()=>{clearTimeout(t1);clearTimeout(t2);};},[]);
+  return (
+    <div style={{position:"fixed",inset:0,background:G.bg,display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,flexDirection:"column",gap:4}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');`}</style>
+      <div style={{fontFamily:F,fontSize:13,fontWeight:300,letterSpacing:12,color:"#aaa",textTransform:"uppercase",opacity:vis?1:0,transition:"opacity 2s ease"}}>WELCOME</div>
+      <div style={{fontFamily:F,fontSize:44,fontWeight:700,letterSpacing:10,color:"#fff",textTransform:"uppercase",opacity:vis?1:0,transition:"opacity 2s ease 0.3s"}}>WATTS</div>
+    </div>
+  );
+}
+function AppSplash({word,onDone}) {
+  const {G}=useTheme();
+  const [phase,setPhase]=useState("expand");
+  useEffect(()=>{const t=setTimeout(()=>{setPhase("done");setTimeout(onDone,400);},1600);return()=>clearTimeout(t);},[]);
+  return (
+    <div style={{position:"fixed",inset:0,background:G.bg,display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,opacity:phase==="done"?0:1,transition:"opacity 0.4s ease"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');@keyframes expandWord{from{opacity:0;letter-spacing:2px;font-size:28px}to{opacity:1;letter-spacing:14px;font-size:44px}}`}</style>
+      <div style={{fontFamily:F,fontWeight:700,color:"#fff",textTransform:"uppercase",animation:"expandWord 1.2s cubic-bezier(0.16,1,0.3,1) both"}}>{word}</div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS PANEL
+// ═══════════════════════════════════════════════════════
+function Settings({open,onClose,theme,setTheme,accents,setAccents}) {
+  const {G}=useTheme();
+  const [closing,setClosing]=useState(false);
+  const [cBg,setCBg]=useState(theme.bg);
+  const [cSurf,setCSurf]=useState(theme.surface);
+  const [cCard,setCCard]=useState(theme.card);
+  const close=()=>{setClosing(true);setTimeout(()=>{setClosing(false);onClose();},280);};
+  const applyPreset=p=>{setTheme(p);setCBg(p.bg);setCSurf(p.surface);setCCard(p.card);};
+  const applyCustom=()=>setTheme({id:"custom",name:"Custom",bg:cBg,surface:cSurf,card:cCard,raised:cCard});
+  if(!open&&!closing) return null;
+  const panelCSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');@keyframes slideInR{from{transform:translateX(100%)}to{transform:translateX(0)}}@keyframes slideOutR{from{transform:translateX(0)}to{transform:translateX(100%)}}`;
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:500,display:"flex"}}>
+      <style>{panelCSS}</style>
+      <div onClick={close} style={{flex:1,background:"rgba(0,0,0,0.6)"}}/>
+      <div style={{width:"85%",maxWidth:380,background:G.surface,height:"100%",overflowY:"auto",boxShadow:"-8px 0 40px rgba(0,0,0,0.7)",animation:closing?"slideOutR 0.28s ease both":"slideInR 0.32s ease both"}}>
+        {/* Header */}
+        <div style={{padding:"20px 20px 14px",borderBottom:`1px solid ${G.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:G.surface,zIndex:10}}>
+          <div style={{fontFamily:F,fontSize:20,fontWeight:700,letterSpacing:3,color:"#fff"}}>SETTINGS</div>
+          <button onClick={close} style={{color:G.dim,fontSize:26,lineHeight:1,background:"none",border:"none",cursor:"pointer"}}>×</button>
+        </div>
+        <div style={{padding:"18px 20px"}}>
+
+          {/* Preset themes */}
+          <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:12}}>BACKGROUND THEME</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:22}}>
+            {PRESETS.map(p=>(
+              <button key={p.id} onClick={()=>applyPreset(p)}
+                style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:4,border:`1px solid ${theme.id===p.id?"#fff":G.border}`,background:p.bg,cursor:"pointer",transition:"border 0.15s",fontFamily:F}}>
+                <div style={{display:"flex",gap:4}}>
+                  {[p.bg,p.surface,p.card].map((c,i)=><div key={i} style={{width:14,height:14,borderRadius:3,background:c,border:"1px solid rgba(255,255,255,0.2)"}}/>)}
+                </div>
+                <span style={{fontFamily:F,fontSize:14,fontWeight:400,color:"#fff",flex:1,textAlign:"left"}}>{p.name}</span>
+                {theme.id===p.id&&<span style={{color:"#fff",fontSize:14}}>✓</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom pickers */}
+          <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:12}}>CUSTOM COLOURS</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:10}}>
+            {[{label:"Background",val:cBg,set:setCBg},{label:"Surfaces",val:cSurf,set:setCSurf},{label:"Cards",val:cCard,set:setCCard}].map(r=>(
+              <div key={r.label} style={{display:"flex",alignItems:"center",gap:10}}>
+                <input type="color" value={r.val} onChange={e=>r.set(e.target.value)} style={{width:34,height:34,borderRadius:4,border:`1px solid ${G.border}`,background:"none",cursor:"pointer",padding:2}}/>
+                <span style={{fontFamily:F,fontSize:14,fontWeight:300,color:"#fff",flex:1}}>{r.label}</span>
+                <span style={{fontFamily:F,fontSize:10,color:G.dim,letterSpacing:1}}>{r.val.toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={applyCustom} style={{width:"100%",padding:"11px 0",background:G.raised,border:`1px solid ${G.borderM}`,borderRadius:4,fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:2,color:"#fff",marginBottom:24,textTransform:"uppercase",cursor:"pointer"}}>APPLY CUSTOM</button>
+
+          {/* Per-app accents */}
+          <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:12}}>APP ACCENT COLOURS</div>
+          <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:22}}>
+            {[{key:"workout",label:"Workout"},{key:"finance",label:"Finances"},{key:"plan",label:"Plan"}].map(app=>(
+              <div key={app.key} style={{display:"flex",alignItems:"center",gap:12}}>
+                <input type="color" value={accents[app.key]} onChange={e=>setAccents(a=>({...a,[app.key]:e.target.value}))} style={{width:34,height:34,borderRadius:4,border:`1px solid ${G.border}`,background:"none",cursor:"pointer",padding:2}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:F,fontSize:15,fontWeight:500,color:"#fff"}}>{app.label}</div>
+                  <div style={{fontFamily:F,fontSize:11,color:G.dim,letterSpacing:1}}>{accents[app.key].toUpperCase()}</div>
+                </div>
+                <button onClick={()=>setAccents(a=>({...a,[app.key]:DEFAULT_ACCENTS[app.key]}))} style={{fontFamily:F,fontSize:10,color:G.dim,letterSpacing:1,border:`1px solid ${G.border}`,borderRadius:3,padding:"4px 8px",background:"none",cursor:"pointer"}}>RESET</button>
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>{setTheme(PRESETS[0]);setAccents({...DEFAULT_ACCENTS});setCBg(PRESETS[0].bg);setCSurf(PRESETS[0].surface);setCCard(PRESETS[0].card);}}
+            style={{width:"100%",padding:"11px 0",background:"none",border:`1px solid ${G.border}`,borderRadius:4,fontFamily:F,fontSize:12,fontWeight:400,letterSpacing:2,color:G.dim,textTransform:"uppercase",cursor:"pointer"}}>
+            RESET ALL TO DEFAULTS
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// LAUNCHER
+// ═══════════════════════════════════════════════════════
+function LauncherApp({onLaunch,todos,settingsOpen,setSettingsOpen}) {
+  const {G,A}=useTheme();
+  const [splash,setSplash]=useState(true);
+  const [calOpen,setCalOpen]=useState(false);
+  const CSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{background:${G.bg};font-family:${F};color:#fff;}button{cursor:pointer;border:none;background:none;font-family:${F};}input,select,textarea{font-family:${F};outline:none;color:#fff;}::placeholder{color:${G.dim};}::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:${G.raised}}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn 0.32s ease both}`;
+  if(splash) return <><style>{CSS}</style><WelcomeSplash onDone={()=>setSplash(false)}/></>;
+  const ws=SCHED[todayDow===0?6:todayDow-1];
+  return (
+    <div style={{minHeight:"100vh",background:G.bg,paddingBottom:90,maxWidth:480,margin:"0 auto"}}>
+      <style>{CSS}</style>
+      {/* Header */}
+      <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"18px 20px 14px",display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:5}}>{now.toLocaleDateString("en-US",{weekday:"long"}).toUpperCase()}</div>
+          <div style={{fontFamily:F,fontSize:26,fontWeight:700,letterSpacing:2,color:"#fff"}}>{now.toLocaleDateString("en-US",{month:"long",day:"numeric"}).toUpperCase()}</div>
+          <div style={{marginTop:8}}>{ws.name!=="Rest"?<Tag color={A.workout.light}>{ws.emoji} {ws.name} Day · {ws.type}</Tag>:<Tag color={G.dim}>○ Rest &amp; Recovery</Tag>}</div>
+        </div>
+        <button onClick={()=>setSettingsOpen(true)} style={{padding:"4px 6px",color:G.dim,fontSize:20,lineHeight:1,marginTop:2}}>☰</button>
+      </div>
+
+      {calOpen?(
+        <div className="fade-in" style={{padding:"16px"}}><CalendarView todos={todos} accent="#fff"/></div>
+      ):(
+        <div className="fade-in" style={{padding:"20px 16px"}}>
+          {[
+            {id:"finance",label:"FINANCES",sub:"Budget · Invest · Track",   acc:A.finance},
+            {id:"plan",   label:"PLAN",    sub:"Tasks · Schedule · Goals",  acc:A.plan},
+            {id:"workout",label:"WORKOUT", sub:"Log · Track · Progress",    acc:A.workout},
+          ].map(app=>(
+            <button key={app.id} onClick={()=>onLaunch(app.id)}
+              style={{width:"100%",background:G.card,border:`1px solid ${G.border}`,borderRadius:8,padding:"28px 0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",marginBottom:12,transition:"all 0.15s",cursor:"pointer"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=app.acc.main;e.currentTarget.style.background=app.acc.glow;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=G.border;e.currentTarget.style.background=G.card;}}>
+              <div style={{fontFamily:F,fontSize:26,fontWeight:600,letterSpacing:8,color:app.acc.light,textTransform:"uppercase"}}>{app.label}</div>
+              <div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginTop:6,letterSpacing:1}}>{app.sub}</div>
+            </button>
+          ))}
+        </div>
+      )}
+      <GlobalNav onHome={()=>setCalOpen(false)} onCalendar={()=>setCalOpen(c=>!c)} calActive={calOpen} accent="#fff"/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// WORKOUT APP
+// ═══════════════════════════════════════════════════════
+function WorkoutApp({onBack,todos}) {
+  const {G,A}=useTheme();
+  const acc=A.workout;
+  const [logs,setLogs]=useStore("gym_logs",{});
+  const [tab,setTab]=useState("today");
+  const [day,setDay]=useState(todayDow===0?6:todayDow-1);
+  const [form,setForm]=useState({exercises:[{name:"",sets:"",weight:""}],notes:""});
+  const [logModal,setLogModal]=useState(null);
+  const [logVal,setLogVal]=useState({weight:"",reps:"",note:""});
+  const [splash,setSplash]=useState(true);
+  const [calOpen,setCalOpen]=useState(false);
+  const [toast,showToast]=useToast();
+  const getDayKey=d=>{const b=new Date(now);const schedDow=todayDow===0?6:todayDow-1;b.setDate(now.getDate()-(schedDow-d));return b.toISOString().split("T")[0];};
+  const ws=SCHED[day],dayKey=getDayKey(day),dayLog=logs[dayKey]||{};
+  const addEx=()=>setForm(f=>({...f,exercises:[...f.exercises,{name:"",sets:"",weight:""}]}));
+  const updEx=(i,k,v)=>setForm(f=>{const ex=[...f.exercises];ex[i]={...ex[i],[k]:v};return{...f,exercises:ex};});
+  const saveWorkout=()=>{if(!form.exercises[0]?.name?.trim())return showToast("Add an exercise first");setLogs(l=>({...l,[dayKey]:{...l[dayKey],custom:form}}));setForm({exercises:[{name:"",sets:"",weight:""}],notes:""});showToast("Saved");setTab("today");};
+  const saveLog=()=>{if(!logModal)return;const{ei,si}=logModal;setLogs(l=>{const n={...l};if(!n[dayKey])n[dayKey]={};if(!n[dayKey][ei])n[dayKey][ei]={};n[dayKey][ei][si]=logVal;return n;});setLogModal(null);showToast("Set logged");};
+  const iS=inp(G);
+  const CSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{background:${G.bg};font-family:${F};color:#fff;}button{cursor:pointer;border:none;background:none;font-family:${F};}input,select,textarea{font-family:${F};outline:none;color:#fff;}::placeholder{color:${G.dim}}::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:${G.raised}}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn 0.32s ease both}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`;
+  if(splash) return <><style>{CSS}</style><AppSplash word="WORKOUT" onDone={()=>setSplash(false)}/></>;
+  return (
+    <div style={{minHeight:"100vh",background:G.bg,paddingBottom:90,maxWidth:480,margin:"0 auto"}}>
+      <style>{CSS}</style>
+      {toast&&<Toast msg={toast}/>}
+      <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"18px 20px 14px",textAlign:"center"}}>
+        <div style={{fontFamily:F,fontSize:32,fontWeight:700,letterSpacing:3,color:acc.light}}>WORKOUT</div>
+      </div>
+      {calOpen?(
+        <div className="fade-in" style={{padding:"16px"}}><CalendarView todos={todos||[]} accent={acc.main}/></div>
+      ):(
+        <>
+          <AppTabs tabs={[{id:"today",label:"TODAY"},{id:"log",label:"LOG"},{id:"week",label:"WEEK"},{id:"goals",label:"GOALS"}]} active={tab} onSelect={setTab} accent={acc.light}/>
+          {/* Day strip */}
+          <div style={{display:"flex",gap:5,padding:"12px 14px",overflowX:"auto",scrollbarWidth:"none",background:G.surface,borderBottom:`1px solid ${G.border}`}}>
+            {DAYS.map((d,i)=>{const ws2=SCHED[i],done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0,isA=i===day;return(
+              <button key={d} onClick={()=>setDay(i)} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 12px",borderRadius:4,border:`1px solid ${isA?acc.main:G.border}`,background:isA?acc.glow:G.card,cursor:"pointer",transition:"all 0.15s"}}>
+                <span style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:1,color:G.dim,textTransform:"uppercase"}}>{d}</span>
+                <span style={{fontFamily:F,fontSize:12,fontWeight:400,letterSpacing:1,color:isA?acc.light:"#fff"}}>{ws2.name.slice(0,3).toUpperCase()}</span>
+                <div style={{width:4,height:4,borderRadius:"50%",background:done?acc.main:"transparent"}}/>
+              </button>);
+            })}
+          </div>
+          <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"16px 20px"}}>
+            <div style={{fontFamily:F,fontSize:40,fontWeight:700,letterSpacing:2,color:"#fff",lineHeight:1}}>{ws.emoji} {ws.name.toUpperCase()}</div>
+            <div style={{fontFamily:F,fontSize:14,fontWeight:300,color:G.dim,marginTop:4}}>{ws.type}</div>
+          </div>
+          {tab==="today"&&(ws.name==="Rest"?(
+            <div style={{textAlign:"center",padding:"48px 0"}}>
+              <div style={{fontSize:48,marginBottom:10}}>○</div>
+              <div style={{fontFamily:F,fontSize:20,fontWeight:600,letterSpacing:2,color:"#fff"}}>REST DAY</div>
+              <div style={{fontFamily:F,fontSize:14,fontWeight:300,color:G.dim,marginTop:6}}>Recovery is part of the mission</div>
+            </div>
+          ):(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <Card>
+                <SH label={`${ws.name} Exercises`} accent={acc.light}/>
+                {[1,2,3].map(ei=>(
+                  <div key={ei} style={{borderBottom:`1px solid ${G.border}`,paddingBottom:14,marginBottom:14}}>
+                    <div style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff",marginBottom:3}}>Exercise {ei}</div>
+                    <div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginBottom:10}}>4 × 8–10 reps</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {[1,2,3,4].map(si=>{const logged=dayLog[ei]?.[si];return(
+                        <button key={si} onClick={()=>{setLogModal({ei,si});setLogVal(logged||{weight:"",reps:"",note:""}); }} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 12px",minWidth:58,border:`1px solid ${logged?acc.main:G.border}`,borderRadius:4,background:logged?acc.glow:G.raised,cursor:"pointer",transition:"all 0.15s"}}>
+                          <span style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:1,color:G.dim}}>S{si}</span>
+                          <span style={{fontFamily:F,fontSize:15,fontWeight:500,letterSpacing:1,color:logged?acc.light:"#fff"}}>{logged?.weight||"—"}</span>
+                          <span style={{fontFamily:F,fontSize:9,letterSpacing:1,color:G.dim}}>{logged?.reps?`${logged.reps}r`:"tap"}</span>
+                        </button>);
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            </div>
+          ))}
+          {tab==="log"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <Card style={{marginBottom:12}}>
+                <SH label="Log Session" accent={acc.light}/>
+                {form.exercises.map((ex,i)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:6,marginBottom:8}}>
+                    <input style={iS} placeholder="Exercise" value={ex.name} onChange={e=>updEx(i,"name",e.target.value)}/>
+                    <input style={iS} placeholder="Sets" value={ex.sets} onChange={e=>updEx(i,"sets",e.target.value)}/>
+                    <input style={iS} placeholder="lbs" value={ex.weight} onChange={e=>updEx(i,"weight",e.target.value)}/>
+                  </div>
+                ))}
+                <button onClick={addEx} style={{width:"100%",background:"none",border:`1px dashed ${G.border}`,borderRadius:3,fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:2,textTransform:"uppercase",color:G.dim,padding:10,cursor:"pointer"}}>+ ADD EXERCISE</button>
+              </Card>
+              <textarea value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Session notes..." style={{...iS,height:72,resize:"none",marginBottom:12}}/>
+              <button onClick={saveWorkout} style={{width:"100%",padding:14,background:acc.main,color:"#fff",fontFamily:F,fontSize:16,fontWeight:700,letterSpacing:2,borderRadius:4,cursor:"pointer"}}>SAVE WORKOUT</button>
+            </div>
+          )}
+          {tab==="week"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              {DAYS.map((d,i)=>{const ws2=SCHED[i],done=logs[getDayKey(i)]&&Object.keys(logs[getDayKey(i)]).length>0,isT=i===(todayDow===0?6:todayDow-1);return(
+                <button key={d} onClick={()=>{setDay(i);setTab("today");}} style={{width:"100%",background:G.card,border:`1px solid ${done?acc.main:isT?G.borderM:G.border}`,borderRadius:5,padding:"14px 16px",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",transition:"all 0.15s",textAlign:"left"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:14}}>
+                    <span style={{fontSize:20}}>{ws2.emoji}</span>
+                    <div>
+                      <div style={{fontFamily:F,fontSize:15,fontWeight:400,letterSpacing:2,color:done?acc.light:isT?"#fff":G.t3}}>{d} — {ws2.name.toUpperCase()}</div>
+                      <div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginTop:2}}>{ws2.type}</div>
+                    </div>
+                  </div>
+                  <Tag color={done?acc.light:isT?acc.light:G.dim}>{done?"DONE":isT?"TODAY":"NEXT"}</Tag>
+                </button>);
+              })}
+            </div>
+          )}
+          {tab==="goals"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              {[{name:"Bench Press",start:135,curr:155,target:225},{name:"Squat",start:185,curr:205,target:315},{name:"Deadlift",start:225,curr:255,target:405}].map(g=>{
+                const p=Math.min(100,Math.round(((g.curr-g.start)/(g.target-g.start))*100));
+                return(
+                  <Card key={g.name} style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                      <span style={{fontFamily:F,fontSize:15,fontWeight:400,letterSpacing:2,color:"#fff"}}>{g.name.toUpperCase()}</span>
+                      <span style={{fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:1,color:acc.light}}>{p}%</span>
+                    </div>
+                    <Bar value={g.curr-g.start} max={g.target-g.start} color={acc.main}/>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontFamily:F,fontSize:12,fontWeight:300,color:G.dim}}>
+                      <span>Start: {g.start}lbs</span><span>Now: {g.curr}lbs</span><span>Goal: {g.target}lbs</span>
+                    </div>
+                  </Card>);
+              })}
+            </div>
+          )}
+        </>
+      )}
+      {logModal&&(
+        <div onClick={()=>setLogModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:G.surface,borderTop:`1px solid ${G.borderB}`,borderRadius:"12px 12px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 44px",animation:"slideUp 0.22s ease"}}>
+            <div style={{fontFamily:F,fontSize:20,fontWeight:600,letterSpacing:2,color:"#fff",marginBottom:4}}>LOG SET</div>
+            <div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginBottom:20}}>Exercise {logModal.ei} · Set {logModal.si}</div>
+            <div style={{display:"flex",gap:12,marginBottom:14}}>
+              {[{label:"Weight (lbs)",k:"weight"},{label:"Reps",k:"reps"}].map(f=>(
+                <div key={f.k} style={{flex:1}}>
+                  <div style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:2,color:G.dim,textTransform:"uppercase",marginBottom:6}}>{f.label}</div>
+                  <input type="number" style={{...iS,fontSize:24}} value={logVal[f.k]} onChange={e=>setLogVal(v=>({...v,[f.k]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveLog()}/>
+                </div>
+              ))}
+            </div>
+            <input placeholder="Note (optional)" style={{...iS,marginBottom:14}} value={logVal.note} onChange={e=>setLogVal(v=>({...v,note:e.target.value}))}/>
+            <button onClick={saveLog} style={{width:"100%",padding:14,background:acc.main,color:"#fff",fontFamily:F,fontSize:16,fontWeight:700,letterSpacing:2,borderRadius:4,marginBottom:10,cursor:"pointer"}}>CONFIRM</button>
+            <button onClick={()=>setLogModal(null)} style={{width:"100%",padding:8,fontFamily:F,fontSize:14,fontWeight:300,color:G.dim,cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+      <GlobalNav onHome={onBack} onCalendar={()=>setCalOpen(c=>!c)} calActive={calOpen} accent={acc.light}/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAN APP
+// ═══════════════════════════════════════════════════════
+function PlanApp({onBack,todos,setTodos}) {
+  const {G,A}=useTheme();
+  const acc=A.plan;
+  const [tab,setTab]=useState("today");
+  const [form,setForm]=useState({text:"",priority:"Medium",time:"",recurrence:"Once",date:now.toISOString().split("T")[0]});
+  const [sortBy,setSortBy]=useState("priority");
+  const [imp,setImp]=useState("");
+  const [calOpen,setCalOpen]=useState(false);
+  const [splash,setSplash]=useState(true);
+  const [toast,showToast]=useToast();
+  const todayStr=now.toISOString().split("T")[0];
+  const schedIdx=todayDow===0?6:todayDow-1;
+  const ws=SCHED[schedIdx];
+  const autoTask=ws.name!=="Rest"?{id:"__w__",text:`${ws.emoji} ${ws.name} Day — ${ws.type}`,priority:"High",time:"",recurrence:"Daily",date:todayStr,done:false,auto:true}:null;
+  const addTodo=()=>{if(!form.text.trim())return showToast("Enter a task");setTodos(t=>[...t,{...form,id:Date.now(),done:false}]);setForm(f=>({...f,text:"",time:""}));showToast("Task added");setTab("today");};
+  const toggle=id=>setTodos(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const del=id=>{setTodos(t=>t.filter(x=>x.id!==id));showToast("Removed");};
+  const priOrder={Critical:0,High:1,Medium:2,Low:3};
+  const sorted=list=>[...list].sort((a,b)=>sortBy==="priority"?priOrder[a.priority]-priOrder[b.priority]:(a.time||"99:99").localeCompare(b.time||"99:99"));
+  const todayTodos=todos.filter(t=>{if(t.recurrence==="Daily")return true;if(t.recurrence==="Weekly")return new Date(t.date).getDay()===now.getDay();if(t.recurrence==="Monthly")return new Date(t.date).getDate()===now.getDate();return t.date===todayStr;});
+  const importList=()=>{const lines=imp.split("\n").filter(l=>l.trim());setTodos(t=>[...t,...lines.map(l=>({id:Date.now()+Math.random(),text:l.trim(),priority:"Medium",time:"",recurrence:"Once",date:todayStr,done:false}))]);setImp("");showToast(`${lines.length} tasks imported`);setTab("today");};
+  const iS=inp(G);
+  const CSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{background:${G.bg};font-family:${F};color:#fff;}button{cursor:pointer;border:none;background:none;font-family:${F};}input,select,textarea{font-family:${F};outline:none;color:#fff;}::placeholder{color:${G.dim}}::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:${G.raised}}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn 0.32s ease both}`;
+  const TaskRow=({todo})=>(
+    <div style={{background:G.card,border:`1px solid ${G.border}`,borderRadius:5,padding:"13px 14px",marginBottom:8,display:"flex",alignItems:"flex-start",gap:10,opacity:todo.done?0.45:1,transition:"opacity 0.2s"}}>
+      <button onClick={()=>!todo.auto&&toggle(todo.id)} style={{width:20,height:20,borderRadius:3,border:`2px solid ${PCOL[todo.priority]||acc.main}`,background:todo.done?(PCOL[todo.priority]||acc.main):"none",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,cursor:todo.auto?"default":"pointer"}}>{todo.done?"✓":""}</button>
+      <div style={{flex:1}}>
+        <div style={{fontFamily:F,fontSize:14,fontWeight:400,color:todo.done?G.dim:"#fff",textDecoration:todo.done?"line-through":"none"}}>{todo.text}</div>
+        <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
+          <Tag color={PCOL[todo.priority]||acc.main}>{todo.priority}</Tag>
+          {todo.time&&<span style={{fontFamily:F,fontSize:11,fontWeight:300,letterSpacing:1,color:G.dim}}>{todo.time}</span>}
+          {todo.recurrence&&todo.recurrence!=="Once"&&<Tag color={G.dim}>{todo.recurrence}</Tag>}
+          {todo.auto&&<Tag color={acc.light}>AUTO</Tag>}
+        </div>
+      </div>
+      {!todo.auto&&<button onClick={()=>del(todo.id)} style={{color:G.dim,fontSize:18,padding:"0 2px",flexShrink:0,cursor:"pointer"}}>×</button>}
+    </div>
+  );
+  if(splash) return <><style>{CSS}</style><AppSplash word="PLAN" onDone={()=>setSplash(false)}/></>;
+  return (
+    <div style={{minHeight:"100vh",background:G.bg,paddingBottom:90,maxWidth:480,margin:"0 auto"}}>
+      <style>{CSS}</style>
+      {toast&&<Toast msg={toast}/>}
+      <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"18px 20px 14px",textAlign:"center"}}>
+        <div style={{fontFamily:F,fontSize:32,fontWeight:700,letterSpacing:3,color:acc.light}}>PLAN</div>
+      </div>
+      {calOpen?(
+        <div className="fade-in" style={{padding:"16px"}}><CalendarView todos={todos} accent={acc.main}/></div>
+      ):(
+        <>
+          <AppTabs tabs={[{id:"today",label:"TODAY"},{id:"all",label:"ALL"},{id:"add",label:"ADD"}]} active={tab} onSelect={setTab} accent={acc.light}/>
+          {(tab==="today"||tab==="all")&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{display:"flex",gap:6}}>
+                  {["priority","time"].map(s=>(
+                    <button key={s} onClick={()=>setSortBy(s)} style={{padding:"5px 12px",background:sortBy===s?acc.main:"none",color:sortBy===s?"#fff":G.dim,border:`1px solid ${sortBy===s?acc.main:G.border}`,borderRadius:3,fontFamily:F,fontSize:10,fontWeight:400,letterSpacing:1,textTransform:"uppercase",transition:"all 0.15s",cursor:"pointer"}}>{s}</button>
+                  ))}
+                </div>
+                <span style={{fontFamily:F,fontSize:10,fontWeight:400,letterSpacing:2,color:G.dim,textTransform:"uppercase"}}>{(tab==="today"?todayTodos:todos).length} tasks</span>
+              </div>
+              {tab==="today"&&autoTask&&<TaskRow todo={autoTask}/>}
+              {sorted(tab==="today"?todayTodos:todos).map(t=><TaskRow key={t.id} todo={t}/>)}
+              {(tab==="today"?todayTodos:todos).length===0&&!autoTask&&<div style={{textAlign:"center",fontFamily:F,fontSize:14,fontWeight:300,color:G.dim,padding:"40px 0"}}>No tasks. Add one.</div>}
+            </div>
+          )}
+          {tab==="add"&&(
+            <div className="fade-in" style={{padding:"14px",display:"flex",flexDirection:"column",gap:10}}>
+              <div><div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:6}}>TASK</div><input style={iS} placeholder="What needs to be done?" value={form.text} onChange={e=>setForm(f=>({...f,text:e.target.value}))}/></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div><div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:6}}>PRIORITY</div><select style={iS} value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value}))}>{PRIOS.map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:6}}>TIME</div><input style={iS} type="time" value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div><div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:6}}>RECURRENCE</div><select style={iS} value={form.recurrence} onChange={e=>setForm(f=>({...f,recurrence:e.target.value}))}>{RECUR.map(r=><option key={r}>{r}</option>)}</select></div>
+                <div><div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:6}}>DATE</div><input style={iS} type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/></div>
+              </div>
+              <button onClick={addTodo} style={{background:acc.main,color:"#fff",padding:14,borderRadius:4,fontFamily:F,fontSize:16,fontWeight:600,letterSpacing:2,cursor:"pointer"}}>ADD TASK</button>
+              <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginTop:8,marginBottom:6}}>OR PASTE A LIST (ONE PER LINE)</div>
+              <textarea value={imp} onChange={e=>setImp(e.target.value)} style={{...iS,height:90,resize:"none"}} placeholder={"Apply to 3 UGC brands\nFilm intro video\nReview finances"}/>
+              <button onClick={importList} style={{background:G.raised,color:"#fff",padding:12,borderRadius:4,fontFamily:F,fontSize:14,fontWeight:400,letterSpacing:2,border:`1px solid ${G.border}`,cursor:"pointer"}}>IMPORT LIST</button>
+            </div>
+          )}
+        </>
+      )}
+      <GlobalNav onHome={onBack} onCalendar={()=>setCalOpen(c=>!c)} calActive={calOpen} accent={acc.light}/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// FINANCE APP
+// ═══════════════════════════════════════════════════════
+function FinanceApp({onBack,todos}) {
+  const {G,A}=useTheme();
+  const acc=A.finance;
+  const [txns,setTxns]=useStore("fin_txn",INIT_TXN);
+  const [invs,setInvs]=useStore("fin_inv",[{id:1,name:"VOO (S&P 500)",shares:2,avgCost:480,currentPrice:512,type:"ETF"}]);
+  const [budgets,setBudgets]=useStore("fin_budgets",{"Food & Dining":150,"Gas & Transport":100});
+  const [month,setMonth]=useState(now.getMonth());
+  const [tab,setTab]=useState("brief");
+  const [form,setForm]=useState({type:"expense",amount:"",category:"Food & Dining",source:"Refereeing",note:"",date:now.toISOString().split("T")[0]});
+  const [invForm,setInvForm]=useState({name:"",shares:"",avgCost:"",currentPrice:"",type:"ETF"});
+  const [exp,setExp]=useState(null);
+  const [calOpen,setCalOpen]=useState(false);
+  const [splash,setSplash]=useState(true);
+  const [toast,showToast]=useToast();
+  const [aiText,setAiText]=useState("");
+  const [aiLoad,setAiLoad]=useState(false);
+  const mT=txns.filter(t=>{const d=new Date(t.date);return d.getMonth()===month&&d.getFullYear()===now.getFullYear();});
+  const totalIn=mT.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const totalOut=mT.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const net=totalIn-totalOut;
+  const expByCat=ECATS.map(c=>({...c,spent:mT.filter(t=>t.type==="expense"&&t.category===c.name).reduce((s,t)=>s+t.amount,0)}));
+  const incBySrc=ISRCS.map(s=>({...s,earned:mT.filter(t=>t.type==="income"&&t.source===s.name).reduce((a,t)=>a+t.amount,0)}));
+  const invVal=invs.reduce((s,i)=>s+i.shares*i.currentPrice,0);
+  const invGain=invVal-invs.reduce((s,i)=>s+i.shares*i.avgCost,0);
+  const fmt=n=>`$${Math.abs(n).toFixed(0)}`;
+  const addTxn=()=>{if(!form.amount||+form.amount<=0)return showToast("Enter a valid amount");setTxns(p=>[{...form,id:Date.now(),amount:+form.amount},...p]);setForm(f=>({...f,amount:"",note:""}));showToast("Logged");};
+  const getAI=async()=>{setAiLoad(true);setAiText("");try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:"Sharp financial advisor. Direct. ▸ bullet headers. 4 insights max.",messages:[{role:"user",content:`${MABB[month]}: Income $${totalIn}, Expenses $${totalOut}, Net $${net}. Food $${expByCat.find(c=>c.name==="Food & Dining")?.spent||0}. 19yo college student. Goals: Porsche 911, financial freedom.`}]})});const d=await res.json();setAiText(d.content?.[0]?.text||"No response.");}catch{setAiText("Connection failed.");}setAiLoad(false);};
+  const exportCSV=()=>{const rows=["TYPE,AMOUNT,CATEGORY,NOTE,DATE",...txns.map(t=>`${t.type},${t.amount},${t.type==="expense"?t.category:t.source},"${t.note||""}",${t.date}`)].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows],{type:"text/csv"}));a.download="watts_finances.csv";a.click();};
+  const iS=inp(G);
+  const CSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html,body{background:${G.bg};font-family:${F};color:#fff;}button{cursor:pointer;border:none;background:none;font-family:${F};}input,select,textarea{font-family:${F};outline:none;color:#fff;}::placeholder{color:${G.dim}}::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:${G.raised}}option{background:${G.card}}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn 0.32s ease both}`;
+  if(splash) return <><style>{CSS}</style><AppSplash word="FINANCES" onDone={()=>setSplash(false)}/></>;
+  return (
+    <div style={{minHeight:"100vh",background:G.bg,paddingBottom:90,maxWidth:480,margin:"0 auto"}}>
+      <style>{CSS}</style>
+      {toast&&<Toast msg={toast}/>}
+      <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"18px 20px 14px",textAlign:"center"}}>
+        <div style={{fontFamily:F,fontSize:32,fontWeight:700,letterSpacing:3,color:acc.light}}>FINANCES</div>
+      </div>
+      {calOpen?(
+        <div className="fade-in" style={{padding:"16px"}}><CalendarView todos={todos||[]} accent={acc.main}/></div>
+      ):(
+        <>
+          <AppTabs tabs={[{id:"brief",label:"BRIEF"},{id:"ops",label:"OPS"},{id:"intel",label:"INTEL"},{id:"invest",label:"INVEST"},{id:"goals",label:"GOALS"}]} active={tab} onSelect={setTab} accent={acc.light}/>
+          {/* Month strip + summary */}
+          <div style={{background:G.surface,borderBottom:`1px solid ${G.border}`,padding:"12px 16px"}}>
+            <div style={{display:"flex",gap:4,overflowX:"auto",scrollbarWidth:"none",marginBottom:12}}>
+              {MABB.map((m,i)=><button key={m} onClick={()=>setMonth(i)} style={{background:month===i?acc.main:"none",color:month===i?"#fff":G.dim,border:`1px solid ${month===i?acc.main:G.border}`,borderRadius:3,padding:"4px 10px",fontFamily:F,fontSize:10,fontWeight:400,letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap",transition:"all 0.15s",cursor:"pointer"}}>{m}</button>)}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+              {[{l:"INCOME",v:totalIn,c:acc.light},{l:"SPENT",v:totalOut,c:"#C0392B"},{l:"NET",v:net,c:net>=0?acc.light:"#C0392B"}].map(s=>(
+                <div key={s.l} style={{textAlign:"center"}}>
+                  <div style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:4}}>{s.l}</div>
+                  <div style={{fontFamily:F,fontSize:22,fontWeight:700,letterSpacing:1,color:s.c}}>{fmt(s.v)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {tab==="brief"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <Card style={{marginBottom:10}}><SH label="Income Streams" accent={acc.light}/>{incBySrc.filter(s=>s.earned>0).length===0&&<div style={{fontFamily:F,fontSize:14,fontWeight:300,color:G.dim}}>No income logged</div>}{incBySrc.filter(s=>s.earned>0).map(s=><div key={s.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff"}}>{s.icon} {s.name}</span><span style={{fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:1,color:acc.light}}>+{fmt(s.earned)}</span></div><Bar value={s.earned} max={totalIn} color={s.color}/></div>)}</Card>
+              <Card style={{marginBottom:10}}><SH label="Expenditure" accent={acc.light}/>{expByCat.filter(c=>c.spent>0).map(c=>{const over=budgets[c.name]&&c.spent>budgets[c.name];return(<div key={c.name} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff"}}>{c.icon} {c.name}{over&&<span style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:2,color:"#C0392B",marginLeft:8,textTransform:"uppercase"}}>OVER</span>}</span><span style={{fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:1,color:over?"#C0392B":"#fff"}}>{fmt(c.spent)}{budgets[c.name]?<span style={{color:G.dim}}>/{fmt(budgets[c.name])}</span>:""}</span></div><Bar value={c.spent} max={budgets[c.name]||totalOut||1} color={over?"#C0392B":c.color}/></div>);})}</Card>
+              <Card><SH label="Recent" accent={acc.light}/>{[...txns].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${G.border}`}}><div><div style={{fontFamily:F,fontSize:14,fontWeight:400,color:"#fff"}}>{t.note||"—"}</div><div style={{fontFamily:F,fontSize:12,fontWeight:300,color:G.dim,marginTop:2}}>{t.date}</div></div><span style={{fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:1,color:t.type==="income"?acc.light:"#C0392B"}}>{t.type==="income"?"+":"-"}{fmt(t.amount)}</span></div>)}</Card>
+            </div>
+          )}
+          {tab==="ops"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <div style={{display:"flex",background:G.card,border:`1px solid ${G.border}`,borderRadius:4,padding:3,marginBottom:12}}>
+                {["expense","income"].map(tp=><button key={tp} onClick={()=>setForm(f=>({...f,type:tp}))} style={{flex:1,padding:10,borderRadius:3,background:form.type===tp?(tp==="income"?acc.main:"#7A1F2E"):"none",color:form.type===tp?"#fff":G.dim,fontFamily:F,fontSize:12,fontWeight:400,letterSpacing:2,textTransform:"uppercase",transition:"all 0.15s",cursor:"pointer"}}>{tp==="expense"?"EXPENSE":"INCOME"}</button>)}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:9,marginBottom:16}}>
+                <input style={iS} type="number" placeholder="Amount $" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/>
+                {form.type==="expense"?<select style={iS} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>{ECATS.map(c=><option key={c.name}>{c.name}</option>)}</select>:<select style={iS} value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))}>{ISRCS.map(s=><option key={s.name}>{s.name}</option>)}</select>}
+                <input style={iS} placeholder="Note" value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}/>
+                <input style={iS} type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}/>
+                <button onClick={addTxn} style={{background:acc.main,color:"#fff",padding:13,borderRadius:4,fontFamily:F,fontSize:16,fontWeight:600,letterSpacing:2,cursor:"pointer"}}>LOG TRANSACTION</button>
+              </div>
+              <SH label="Spending Limits" accent={acc.light}/>
+              {ECATS.map(cat=><div key={cat.name} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{color:cat.color,width:16,fontSize:16}}>{cat.icon}</span><span style={{flex:1,fontFamily:F,fontSize:14,fontWeight:300,color:"#fff"}}>{cat.name}</span><input style={{...iS,width:90,padding:"7px 10px"}} type="number" placeholder="Limit" value={budgets[cat.name]||""} onChange={e=>setBudgets(b=>({...b,[cat.name]:+e.target.value||undefined}))}/></div>)}
+              <div style={{marginTop:16}}><SH label="Transaction Log" accent={acc.light}/></div>
+              {[...txns].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${G.border}`}}><div><div style={{fontFamily:F,fontSize:14,fontWeight:400,color:"#fff"}}>{t.note||t.category||t.source}</div><div style={{fontFamily:F,fontSize:12,fontWeight:300,color:G.dim}}>{t.date}</div></div><div style={{display:"flex",gap:10,alignItems:"center"}}><span style={{fontFamily:F,fontSize:13,fontWeight:500,letterSpacing:1,color:t.type==="income"?acc.light:"#C0392B"}}>{t.type==="income"?"+":"-"}{fmt(t.amount)}</span><button onClick={()=>setTxns(p=>p.filter(x=>x.id!==t.id))} style={{color:G.dim,fontSize:18,cursor:"pointer"}}>×</button></div></div>)}
+              <button onClick={exportCSV} style={{background:"none",border:`1px solid ${acc.main}`,color:acc.light,padding:11,borderRadius:4,fontFamily:F,fontSize:12,fontWeight:400,letterSpacing:2,textTransform:"uppercase",width:"100%",marginTop:14,cursor:"pointer"}}>EXPORT CSV</button>
+            </div>
+          )}
+          {tab==="intel"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <Card style={{marginBottom:10}}>
+                <SH label="Recommended Allocations" accent={acc.light}/>
+                <div style={{fontFamily:F,fontSize:11,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:14}}>BASED ON {fmt(totalIn)} MONTHLY INCOME</div>
+                {[{l:"Emergency Fund (10%)",v:totalIn*0.1,n:"Build to $1,000 first"},{l:"Roth IRA (10%)",v:Math.min(totalIn*0.1,583),n:"$7k/yr cap — buy VOO"},{l:"Car Fund (5%)",v:totalIn*0.05,n:"Porsche fund starts here"},{l:"Total Target (20%)",v:totalIn*0.2,n:"Minimum to hit your goals"}].map(r=>(
+                  <div key={r.l} style={{marginBottom:13}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><div><div style={{fontFamily:F,fontSize:14,fontWeight:400,color:"#fff"}}>{r.l}</div><div style={{fontFamily:F,fontSize:12,fontWeight:300,color:G.dim,marginTop:2}}>{r.n}</div></div><span style={{fontFamily:F,fontSize:20,fontWeight:600,letterSpacing:1,color:acc.light}}>${r.v.toFixed(0)}</span></div>
+                    <Bar value={r.v} max={totalIn||1} color={acc.main}/>
+                  </div>
+                ))}
+              </Card>
+              <Card>
+                <SH label="AI Briefing" accent={acc.light}/>
+                {aiText&&<div style={{fontFamily:F,fontSize:13,fontWeight:300,lineHeight:1.8,color:"#fff",marginBottom:14,whiteSpace:"pre-wrap",borderLeft:`2px solid ${acc.main}`,paddingLeft:12}}>{aiText}</div>}
+                <button onClick={getAI} disabled={aiLoad} style={{background:acc.main,color:"#fff",padding:13,borderRadius:4,fontFamily:F,fontSize:16,fontWeight:600,letterSpacing:2,width:"100%",opacity:aiLoad?0.6:1,cursor:"pointer"}}>{aiLoad?"RETRIEVING...":"REQUEST BRIEFING"}</button>
+              </Card>
+            </div>
+          )}
+          {tab==="invest"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                {[{l:"PORTFOLIO",v:`$${invVal.toFixed(0)}`},{l:"GAIN/LOSS",v:`${invGain>=0?"+":"-"}$${Math.abs(invGain).toFixed(0)}`}].map(s=><Card key={s.l} style={{textAlign:"center",padding:"12px 8px"}}><div style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:3,color:G.dim,textTransform:"uppercase",marginBottom:5}}>{s.l}</div><div style={{fontFamily:F,fontSize:22,fontWeight:700,letterSpacing:1,color:acc.light}}>{s.v}</div></Card>)}
+              </div>
+              {invs.map((inv,i)=>{const gain=(inv.currentPrice-inv.avgCost)*inv.shares;return(
+                <Card key={inv.id} style={{marginBottom:8,cursor:"pointer"}} onClick={()=>setExp(exp===i?null:i)}>
+                  <div style={{display:"flex",justifyContent:"space-between"}}><div><div style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff"}}>{inv.name}</div><div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginTop:3}}>{inv.shares} shares · {inv.type}</div></div><div style={{textAlign:"right"}}><div style={{fontFamily:F,fontSize:18,fontWeight:600,letterSpacing:1,color:acc.light}}>${(inv.shares*inv.currentPrice).toFixed(0)}</div><div style={{fontFamily:F,fontSize:13,fontWeight:300,color:gain>=0?acc.light:"#C0392B",marginTop:3}}>{gain>=0?"+":"-"}${Math.abs(gain).toFixed(0)}</div></div></div>
+                  {exp===i&&<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${G.border}`,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[{l:"Avg Cost",v:`$${inv.avgCost}`},{l:"Current",v:`$${inv.currentPrice}`}].map(d=><div key={d.l}><div style={{fontFamily:F,fontSize:9,fontWeight:400,letterSpacing:2,color:G.dim,textTransform:"uppercase",marginBottom:3}}>{d.l}</div><div style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff"}}>{d.v}</div></div>)}</div>}
+                </Card>);})}
+              <Card style={{marginTop:4}}>
+                <SH label="Add Holding" accent={acc.light}/>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <input style={iS} placeholder="Name (e.g. VOO)" value={invForm.name} onChange={e=>setInvForm(f=>({...f,name:e.target.value}))}/>
+                  <select style={iS} value={invForm.type} onChange={e=>setInvForm(f=>({...f,type:e.target.value}))}>{["ETF","Stock","Roth IRA","Cash","Other"].map(t=><option key={t}>{t}</option>)}</select>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    <input style={iS} placeholder="Shares" type="number" value={invForm.shares} onChange={e=>setInvForm(f=>({...f,shares:e.target.value}))}/>
+                    <input style={iS} placeholder="Avg $" type="number" value={invForm.avgCost} onChange={e=>setInvForm(f=>({...f,avgCost:e.target.value}))}/>
+                    <input style={iS} placeholder="Now $" type="number" value={invForm.currentPrice} onChange={e=>setInvForm(f=>({...f,currentPrice:e.target.value}))}/>
+                  </div>
+                  <button onClick={()=>{if(!invForm.name||!invForm.shares)return;setInvs(p=>[...p,{...invForm,id:Date.now(),shares:+invForm.shares,avgCost:+invForm.avgCost,currentPrice:+invForm.currentPrice}]);setInvForm({name:"",shares:"",avgCost:"",currentPrice:"",type:"ETF"});showToast("Added");}} style={{background:acc.main,color:"#fff",padding:12,borderRadius:4,fontFamily:F,fontSize:15,fontWeight:600,letterSpacing:2,cursor:"pointer"}}>ADD</button>
+                </div>
+              </Card>
+            </div>
+          )}
+          {tab==="goals"&&(
+            <div className="fade-in" style={{padding:"14px"}}>
+              {[{name:"Ford Explorer ST",price:"$35–50k used",timeline:"3–5 yrs",ok:true},{name:"Toyota 4Runner TRD Pro",price:"$45–60k used",timeline:"3–5 yrs",ok:true},{name:"Porsche 911 (used)",price:"$80–150k",timeline:"7–10 yrs",ok:false},{name:"Aston Martin Vantage",price:"$80–130k",timeline:"8–10 yrs",ok:false}].map((car,i)=>(
+                <Card key={car.name} style={{marginBottom:8,cursor:"pointer"}} onClick={()=>setExp(exp===`c${i}`?null:`c${i}`)}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontFamily:F,fontSize:15,fontWeight:400,color:"#fff"}}>{car.name}</div><div style={{fontFamily:F,fontSize:13,fontWeight:300,color:G.dim,marginTop:3}}>{car.price} · {car.timeline}</div></div><Tag color={car.ok?acc.light:"#C8A84B"}>{car.ok?"ACHIEVABLE":"ON TRACK"}</Tag></div>
+                  {exp===`c${i}`&&<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${G.border}`,fontFamily:F,fontSize:13,fontWeight:300,color:"#fff",lineHeight:1.7}}>Buy 2–3 years used. Saves 25–30% off new. Start your car fund now — $50/month compounding over 7 years grows meaningfully.</div>}
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      <GlobalNav onHome={onBack} onCalendar={()=>setCalOpen(c=>!c)} calActive={calOpen} accent={acc.light}/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// ROOT
+// ═══════════════════════════════════════════════════════
+export default function WattsCommandSuite() {
+  const [app,setApp]=useState("launcher");
+  const [trans,setTrans]=useState(null);
+  const [theme,setTheme]=useState(PRESETS[0]); // Pure Black default
+  const [accents,setAccents]=useState({...DEFAULT_ACCENTS});
+  const [settingsOpen,setSettingsOpen]=useState(false);
+  const [todos,setTodos]=useStore("plan_todos",[
+    {id:1,text:"Set up Insense profile", priority:"Critical",time:"10:00",recurrence:"Once",  done:false,date:now.toISOString().split("T")[0]},
+    {id:2,text:"Film UGC intro video",   priority:"High",    time:"14:00",recurrence:"Once",  done:false,date:now.toISOString().split("T")[0]},
+    {id:3,text:"Apply to 3 brand deals", priority:"High",    time:"",     recurrence:"Weekly",done:false,date:now.toISOString().split("T")[0]},
+  ]);
+  const LABELS={finance:"FINANCES",plan:"PLAN",workout:"WORKOUT"};
+  const launch=id=>{setTrans(LABELS[id]);setTimeout(()=>{setApp(id);setTrans(null);},1800);};
+  const G=makeG(theme);
+  const A={
+    workout:makeA(accents.workout),
+    finance:makeA(accents.finance),
+    plan:   makeA(accents.plan),
+  };
+  const transCSS=`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;600;700&display=swap');@keyframes expandWord{from{opacity:0;letter-spacing:2px;font-size:28px}to{opacity:1;letter-spacing:14px;font-size:44px}}`;
+  return (
+    <ThemeCtx.Provider value={{G,A}}>
+      {trans&&(
+        <div style={{position:"fixed",inset:0,background:G.bg,display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+          <style>{transCSS}</style>
+          <div style={{fontFamily:F,fontWeight:700,color:"#fff",textTransform:"uppercase",animation:"expandWord 1.4s cubic-bezier(0.16,1,0.3,1) both"}}>{trans}</div>
+        </div>
+      )}
+      {!trans&&app==="launcher"&&<LauncherApp onLaunch={launch} todos={todos} settingsOpen={settingsOpen} setSettingsOpen={setSettingsOpen}/>}
+      {!trans&&app==="finance" &&<FinanceApp  onBack={()=>setApp("launcher")} todos={todos}/>}
+      {!trans&&app==="plan"    &&<PlanApp     onBack={()=>setApp("launcher")} todos={todos} setTodos={setTodos}/>}
+      {!trans&&app==="workout" &&<WorkoutApp  onBack={()=>setApp("launcher")} todos={todos}/>}
+      <Settings open={settingsOpen} onClose={()=>setSettingsOpen(false)} theme={theme} setTheme={setTheme} accents={accents} setAccents={setAccents}/>
+    </ThemeCtx.Provider>
+  );
+}
